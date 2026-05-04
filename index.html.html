@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>英単語アプリ・履歴PDF対応版</title>
+    <title>英単語学習 1-101</title>
     <style>
         :root { --primary: #3498db; --sidebar-bg: #2c3e50; --bg: #f4f7f6; --white: #ffffff; --success: #28a745; --error: #dc3545; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -23,17 +23,14 @@
         .btn { display: block; width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 10px; background: var(--primary); color: white; font-size: 1rem; font-weight: bold; cursor: pointer; text-align: center; }
         .option-btn { display: block; width: 100%; padding: 16px; margin: 8px 0; border: 2px solid #eee; border-radius: 12px; background: white; cursor: pointer; text-align: left; font-size: 1.05rem; }
         
-        /* 履歴リスト用スタイル */
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; }
-        .history-info { flex: 1; }
-        .btn-sm { padding: 8px 12px; font-size: 0.8rem; background: var(--sidebar-bg); color: white; border-radius: 5px; border: none; cursor: pointer; }
+        .btn-sm { padding: 8px 12px; font-size: 0.8rem; background: var(--sidebar-bg); color: white; border-radius: 5px; border: none; }
 
-        /* PDF印刷用 */
         @media print {
             body * { visibility: hidden; }
             #print-area, #print-area * { visibility: visible; }
             #print-area { position: absolute; left: 0; top: 0; width: 100%; }
-            .btn, .sidebar, .mobile-header, .no-print { display: none !important; }
+            .btn, .sidebar, .mobile-header { display: none !important; }
         }
 
         #sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1900; }
@@ -50,7 +47,7 @@
     <div class="mobile-header"><button style="background:none; border:none; color:white; font-size:20px;" onclick="toggleMenu()">☰ Menu</button></div>
     <div id="sidebar-overlay" onclick="toggleMenu()"></div>
     <div class="sidebar" id="sidebar">
-        <h2 style="text-align:center">Study App</h2>
+        <h2 style="text-align:center">Word Study</h2>
         <div id="btn-home" class="nav-item active" onclick="changePage('home')">ホーム</div>
         <div id="btn-quiz" class="nav-item" onclick="changePage('quiz')">単語クイズ</div>
         <div id="btn-history" class="nav-item" onclick="changePage('history')">学習履歴</div>
@@ -58,29 +55,38 @@
 
     <div class="main-content">
         <div id="page-home" class="page active">
-            <h1>ホーム</h1>
-            <div class="card"><h3>新機能：履歴からPDF</h3><p>「学習履歴」タブから、過去のテスト結果をいつでもPDFで保存できます。</p></div>
+            <h1>単語学習 1-101</h1>
+            <div class="card">
+                <h3>believe ～ nonetheless</h3>
+                <p>Excelの順番通りに分割しました。範囲を選んで開始してください。</p>
+            </div>
         </div>
 
         <div id="page-quiz" class="page">
             <div id="quiz-menu" class="card">
-                <h1>範囲選択</h1>
-                <button class="btn" onclick="startQuiz(1, 100)">全範囲 (1-100)</button>
+                <h1>テスト範囲を選択</h1>
+                <button class="btn" onclick="startQuiz(1, 32)">1 ～ 32 (ランダム10問)</button>
+                <button class="btn" onclick="startQuiz(33, 68)">33 ～ 68 (ランダム10問)</button>
+                <button class="btn" onclick="startQuiz(69, 101)">69 ～ 101 (ランダム10問)</button>
+                <button class="btn" onclick="startQuiz(1, 101)" style="background:#2c3e50">1 ～ 101 (全ランダム10問)</button>
             </div>
+            
             <div id="quiz-game" class="card" style="display:none;">
                 <div id="q-progress" style="color:#888; margin-bottom:10px;"></div>
                 <div id="q-text" style="font-size:1.3rem; margin-bottom:20px; font-weight:bold;"></div>
                 <div id="q-options"></div>
             </div>
-            <div id="quiz-feedback" class="card" style="display:none; text-align:center; border-top:8px solid #ccc;">
-                <div id="fb-status" style="font-size:1.5rem; font-weight:bold; margin-bottom:15px;"></div>
-                <div id="fb-content" style="text-align:left; background:#f9f9f9; padding:15px; border-radius:8px;"></div>
+
+            <div id="quiz-feedback" class="card" style="display:none; border-top:8px solid #ccc;">
+                <div id="fb-status" style="font-size:1.5rem; font-weight:bold; margin-bottom:15px; text-align:center;"></div>
+                <div id="fb-content" style="background:#f9f9f9; padding:15px; border-radius:8px;"></div>
                 <button class="btn" onclick="nextQuestion()" style="margin-top:20px; background:var(--sidebar-bg)">次へ進む</button>
             </div>
+
             <div id="quiz-result" class="card" style="display:none; text-align:center;">
-                <h2>テスト完了！</h2>
+                <h2>結果発表</h2>
                 <div id="res-score" style="font-size:3rem; color:var(--primary); font-weight:bold; margin:20px;"></div>
-                <button class="btn" onclick="changePage('history')">履歴を見に行く</button>
+                <button class="btn" onclick="changePage('history')">履歴からPDFを保存</button>
             </div>
         </div>
 
@@ -94,13 +100,12 @@
                 <div id="pdf-header"></div>
                 <div id="pdf-body"></div>
             </div>
-            <button class="btn" onclick="window.print()" style="background:#2ecc71;">この内容でPDF保存・印刷</button>
-            <button class="btn" onclick="changePage('history')" style="background:#888;">履歴一覧に戻る</button>
+            <button class="btn" onclick="window.print()" style="background:#2ecc71;">PDFとして保存</button>
+            <button class="btn" onclick="changePage('history')" style="background:#888;">一覧に戻る</button>
         </div>
     </div>
 
 <script>
-    // データ（100単語）
     const masterData = [
         {a:"believe", m:"(…ということ)を信じる", q:"I (____) that you will succeed."},
         {a:"consider", m:"を(…だと)みなす", q:"We (____) the lion to be the king of beasts."},
@@ -196,13 +201,14 @@
         {a:"ancient", m:"古代の;古くからの", q:"They are studying (____) civilizations."},
         {a:"recent", m:"最近の", q:"Have you seen any (____) movies?"},
         {a:"future", m:"未来の;将来の", q:"I'm worried about the (____)."},
-        {a:"save", m:"を節約する", q:"We should (____) water and electricity."},
+        {a:"save", m:"を節約する;を救う", q:"We should (____) water and electricity."},
         {a:"happen", m:"(事が)起こる", q:"What (____) to you yesterday?"},
         {a:"occur", m:"(事が)おこる", q:"The accident (____) at midnight."},
         {a:"work", m:"機能する;働く", q:"This machine doesn't (____) properly."},
         {a:"change", m:"を変える;変わる", q:"The weather will (____) tomorrow."},
         {a:"run", m:"を経営する;走る", q:"He (____) a small restaurant in the city."},
-        {a:"turn", m:"の向きを変える", q:"(____) left at the next corner."}
+        {a:"turn", m:"の向きを変える;曲がる", q:"(____) left at the next corner."},
+        {a:"nonetheless", m:"それにもかかわらず", q:"It was raining; (____), we went out."}
     ];
 
     let currentSet = [], currentIdx = 0, score = 0, sessionRes = [];
@@ -216,10 +222,7 @@
 
     function changePage(p) {
         document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById('page-'+p).classList.add('active');
-        const btn = document.getElementById('btn-'+p);
-        if(btn) btn.classList.add('active');
         if(window.innerWidth < 768) {
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('sidebar-overlay').style.display='none';
@@ -234,7 +237,8 @@
     }
 
     function startQuiz(min, max) {
-        currentSet = [...masterData.slice(min-1, max)].sort(()=>Math.random()-0.5).slice(0, 10);
+        const pool = masterData.slice(min-1, max);
+        currentSet = [...pool].sort(()=>Math.random()-0.5).slice(0, 10);
         currentIdx = 0; score = 0; sessionRes = [];
         document.getElementById('quiz-menu').style.display='none';
         document.getElementById('quiz-game').style.display='block';
@@ -263,9 +267,7 @@
     function checkAnswer(userAns, qData) {
         const isOk = (userAns === qData.a);
         if(isOk) score++;
-        const wrongData = masterData.find(d => d.a === userAns);
-        sessionRes.push({q:qData.q, a:qData.a, am:qData.m, u:userAns, um:wrongData ? wrongData.m : "---", ok:isOk});
-        
+        sessionRes.push({q:qData.q, a:qData.a, am:qData.m, u:userAns, ok:isOk});
         document.getElementById('quiz-game').style.display = 'none';
         const fb = document.getElementById('quiz-feedback');
         fb.style.display = 'block';
@@ -273,10 +275,10 @@
         st.innerText = isOk ? "正解！" : "不正解...";
         st.style.color = isOk ? "var(--success)" : "var(--error)";
         fb.style.borderColor = isOk ? "var(--success)" : "var(--error)";
-        
-        let html = `<div><b>正解: ${qData.a}</b><br><small>${qData.m}</small></div>`;
-        if(!isOk) html += `<div style="margin-top:10px; color:#666;">あなたの回答: ${userAns}<br><small>${wrongData ? wrongData.m : ""}</small></div>`;
-        document.getElementById('fb-content').innerHTML = html;
+        document.getElementById('fb-content').innerHTML = `
+            <div><span style="font-size:1.2rem; font-weight:bold; color:var(--success);">正解: ${qData.a}</span><br><small>${qData.m}</small></div>
+            ${!isOk ? `<div style="margin-top:10px; color:#666; border-top:1px dashed #ccc; padding-top:10px;">あなたの回答: ${userAns}</div>` : ''}
+        `;
     }
 
     function nextQuestion() {
@@ -293,20 +295,19 @@
     function finishQuiz() {
         document.getElementById('quiz-result').style.display='block';
         document.getElementById('res-score').innerText = `${score} / ${currentSet.length}`;
-        let hist = JSON.parse(localStorage.getItem('eng_v2') || '[]');
+        let hist = JSON.parse(localStorage.getItem('eng_101_history') || '[]');
         hist.unshift({date: new Date().toLocaleString(), score: `${score}/${currentSet.length}`, details: sessionRes});
-        localStorage.setItem('eng_v2', JSON.stringify(hist.slice(0, 20)));
+        localStorage.setItem('eng_101_history', JSON.stringify(hist.slice(0, 20)));
     }
 
     function updateHistoryList() {
         const container = document.getElementById('history-container');
-        const hist = JSON.parse(localStorage.getItem('eng_v2') || '[]');
+        const hist = JSON.parse(localStorage.getItem('eng_101_history') || '[]');
         if(hist.length === 0) { container.innerHTML = "履歴がありません。"; return; }
-        
         let html = "";
         hist.forEach((h, i) => {
             html += `<div class="history-item">
-                <div class="history-info"><b>${h.date}</b><br>点数: ${h.score}</div>
+                <div style="flex:1"><b>${h.date}</b><br>点数: ${h.score}</div>
                 <button class="btn-sm" onclick="viewPDF(${i})">詳細/PDF</button>
             </div>`;
         });
@@ -314,16 +315,15 @@
     }
 
     function viewPDF(index) {
-        const hist = JSON.parse(localStorage.getItem('eng_v2') || '[]');
+        const hist = JSON.parse(localStorage.getItem('eng_101_history') || '[]');
         const data = hist[index];
-        document.getElementById('pdf-header').innerHTML = `<h2 style="text-align:center;">テスト結果レポート</h2><p style="text-align:center;">日時: ${data.date} / 点数: ${data.score}</p><hr>`;
-        
+        document.getElementById('pdf-header').innerHTML = `<h2 style="text-align:center;">テスト結果レポート</h2><p style="text-align:center;">${data.date} / スコア: ${data.score}</p><hr>`;
         let body = "";
         data.details.forEach((d, i) => {
             body += `<div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px; page-break-inside:avoid;">
                 <b>Q${i+1}: ${d.q}</b><br>
-                結果: ${d.ok ? '<span style="color:green">○</span>' : '<span style="color:red">×</span>'} (正解: ${d.a} / あなた: ${d.u})<br>
-                <small style="color:#666;">正解の意味: ${d.am}</small>
+                ${d.ok ? '○ 正解' : '× 不正解'} (正解: ${d.a} / あなた: ${d.u})<br>
+                <small style="color:#666;">意味: ${d.am}</small>
             </div>`;
         });
         document.getElementById('pdf-body').innerHTML = body;
