@@ -9,11 +9,9 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: #333; overflow: hidden; }
 
-        /* サイドバー */
         .sidebar { width: 240px; background: var(--sidebar-bg); color: white; display: flex; flex-direction: column; padding-top: 20px; flex-shrink: 0; position: absolute; height: 100%; z-index: 2000; transition: transform 0.3s ease; transform: translateX(-100%); }
         .sidebar.open { transform: translateX(0); }
         
-        /* ナビゲーション項目（通常時とアクティブ時） */
         .nav-item { padding: 18px 25px; cursor: pointer; color: #bdc3c7; border-left: 4px solid transparent; transition: 0.2s; }
         .nav-item:hover { background: #3e5871; color: white; }
         .nav-item.active { background: #34495e; border-left: 4px solid var(--primary); color: white; font-weight: bold; }
@@ -27,6 +25,16 @@
         .btn { display: block; width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 10px; background: var(--primary); color: white; font-size: 1rem; font-weight: bold; cursor: pointer; text-align: center; }
         .option-btn { display: block; width: 100%; padding: 16px; margin: 8px 0; border: 2px solid #eee; border-radius: 12px; background: white; cursor: pointer; text-align: left; font-size: 1.05rem; }
         
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; background: white; margin-bottom: 5px; border-radius: 8px; }
+        .btn-sm { padding: 8px 12px; font-size: 0.8rem; background: var(--sidebar-bg); color: white; border-radius: 5px; border: none; cursor: pointer; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+            .btn, .sidebar, .mobile-header { display: none !important; }
+        }
+
         #sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1900; }
         
         @media (min-width: 768px) {
@@ -53,7 +61,7 @@
             <h1>ホーム</h1>
             <div class="card">
                 <h3>1-101 単語テスト</h3>
-                <p>サイドメニューから「単語クイズ」を選択して開始してください。</p>
+                <p>サイドメニューから範囲を選んでテストを開始してください。結果は「学習履歴」に保存されます。</p>
             </div>
         </div>
 
@@ -81,13 +89,22 @@
             <div id="quiz-result" class="card" style="display:none; text-align:center;">
                 <h2>結果発表</h2>
                 <div id="res-score" style="font-size:3rem; color:var(--primary); font-weight:bold; margin:20px;"></div>
-                <button class="btn" onclick="changePage('history')">履歴を確認</button>
+                <button class="btn" onclick="changePage('history')">履歴を確認する</button>
             </div>
         </div>
 
         <div id="page-history" class="page">
             <h1>学習履歴</h1>
             <div id="history-container">履歴がありません。</div>
+        </div>
+
+        <div id="page-pdf-view" class="page">
+            <div id="print-area" class="card">
+                <div id="pdf-header"></div>
+                <div id="pdf-body"></div>
+            </div>
+            <button class="btn" onclick="window.print()" style="background:#2ecc71;">PDFとして保存</button>
+            <button class="btn" onclick="changePage('history')" style="background:#888;">一覧に戻る</button>
         </div>
     </div>
 
@@ -197,7 +214,7 @@
         {a:"nonetheless", m:"それにもかかわらず", q:"It was raining; (____), we went out."}
     ];
 
-    let currentSet = [], currentIdx = 0, score = 0;
+    let currentSet = [], currentIdx = 0, score = 0, sessionRes = [];
 
     function toggleMenu() {
         const s = document.getElementById('sidebar');
@@ -206,23 +223,17 @@
         o.style.display = open ? 'block' : 'none';
     }
 
-    // ページ切り替えとナビ強調
     function changePage(p) {
-        // 全ページ非表示
         document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
-        // 対象ページ表示
         document.getElementById('page-'+p).classList.add('active');
-
-        // ナビ項目の色リセット & アクティブ化
         document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
         document.getElementById('nav-'+p).classList.add('active');
 
-        // モバイル用メニュー閉じ
         if(window.innerWidth < 768) {
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('sidebar-overlay').style.display='none';
         }
-
+        if(p === 'history') updateHistoryList();
         if(p === 'quiz') resetQuizMenu();
     }
 
@@ -236,7 +247,7 @@
     function startQuiz(min, max) {
         const pool = masterData.slice(min-1, max);
         currentSet = [...pool].sort(()=>Math.random()-0.5).slice(0, 10);
-        currentIdx = 0; score = 0;
+        currentIdx = 0; score = 0; sessionRes = [];
         document.getElementById('quiz-menu').style.display='none';
         document.getElementById('quiz-game').style.display='block';
         loadQ();
@@ -264,6 +275,8 @@
     function checkAnswer(userAns, qData) {
         const isOk = (userAns === qData.a);
         if(isOk) score++;
+        sessionRes.push({q:qData.q, a:qData.a, am:qData.m, u:userAns, ok:isOk});
+
         document.getElementById('quiz-game').style.display = 'none';
         const fb = document.getElementById('quiz-feedback');
         fb.style.display = 'block';
@@ -284,9 +297,53 @@
             document.getElementById('quiz-game').style.display = 'block';
             loadQ();
         } else {
-            document.getElementById('quiz-result').style.display='block';
-            document.getElementById('res-score').innerText = `${score} / ${currentSet.length}`;
+            finishQuiz();
         }
+    }
+
+    function finishQuiz() {
+        document.getElementById('quiz-result').style.display='block';
+        document.getElementById('res-score').innerText = `${score} / ${currentSet.length}`;
+        
+        // 履歴に保存
+        let hist = JSON.parse(localStorage.getItem('study_app_history') || '[]');
+        hist.unshift({
+            date: new Date().toLocaleString(),
+            score: `${score}/${currentSet.length}`,
+            details: sessionRes
+        });
+        localStorage.setItem('study_app_history', JSON.stringify(hist.slice(0, 30))); // 最大30件保存
+    }
+
+    function updateHistoryList() {
+        const container = document.getElementById('history-container');
+        const hist = JSON.parse(localStorage.getItem('study_app_history') || '[]');
+        if(hist.length === 0) { container.innerHTML = "履歴がありません。"; return; }
+        
+        let html = "";
+        hist.forEach((h, i) => {
+            html += `<div class="history-item">
+                <div style="flex:1"><b>${h.date}</b><br>スコア: ${h.score}</div>
+                <button class="btn-sm" onclick="viewPDF(${i})">詳細を見る</button>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function viewPDF(index) {
+        const hist = JSON.parse(localStorage.getItem('study_app_history') || '[]');
+        const data = hist[index];
+        document.getElementById('pdf-header').innerHTML = `<h2 style="text-align:center;">テスト結果詳細</h2><p style="text-align:center;">${data.date} / スコア: ${data.score}</p><hr>`;
+        let body = "";
+        data.details.forEach((d, i) => {
+            body += `<div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+                <b>Q${i+1}: ${d.q}</b><br>
+                ${d.ok ? '<span style="color:green">○ 正解</span>' : '<span style="color:red">× 不正解</span>'} (正解: ${d.a} / あなた: ${d.u})<br>
+                <small style="color:#666;">意味: ${d.am}</small>
+            </div>`;
+        });
+        document.getElementById('pdf-body').innerHTML = body;
+        changePage('pdf-view');
     }
 </script>
 </body>
