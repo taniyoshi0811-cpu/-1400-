@@ -3,43 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Target 100 完全版（範囲選択・履歴機能）</title>
+    <title>Target 100 決定版（完全版）</title>
     <style>
         :root { 
             --primary: #3498db; --sidebar-bg: #2c3e50; --bg: #f4f7f6; --white: #ffffff; 
             --success: #28a745; --success-bg: #eaffed; --error: #dc3545; --error-bg: #fff0f0; --accent: #e67e22; 
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Helvetica Neue', Arial, "Hiragino Kaku Gothic ProN", sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: #333; overflow: hidden; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: #333; overflow: hidden; }
 
         /* レイアウト */
         .sidebar { width: 240px; background: var(--sidebar-bg); color: white; display: flex; flex-direction: column; padding-top: 20px; flex-shrink: 0; position: absolute; height: 100%; z-index: 2000; transition: transform 0.3s ease; transform: translateX(-100%); }
         .sidebar.open { transform: translateX(0); }
-        .nav-item { padding: 18px 25px; cursor: pointer; color: #bdc3c7; border-left: 4px solid transparent; transition: 0.2s; }
-        .nav-item:hover { background: #3e5871; color: white; }
+        .nav-item { padding: 18px 25px; cursor: pointer; color: #bdc3c7; border-left: 4px solid transparent; }
         .nav-item.active { background: #34495e; border-left: 4px solid var(--primary); color: white; font-weight: bold; }
 
         .mobile-header { display: flex; align-items: center; background: var(--sidebar-bg); color: white; width: 100%; height: 50px; position: fixed; top: 0; left: 0; z-index: 1500; padding: 0 15px; }
-        .main-content { flex: 1; padding: 70px 15px 20px 15px; overflow-y: auto; display: flex; justify-content: center; width: 100%; }
+        .main-content { flex: 1; padding: 70px 15px 20px 15px; overflow-y: auto; display: flex; justify-content: center; width: 100%; scroll-behavior: smooth; }
         .page { display: none; width: 100%; max-width: 600px; }
         .page.active { display: block; }
 
         .card { background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        .btn { display: block; width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 10px; background: var(--primary); color: white; font-size: 1rem; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; }
+        .btn { display: block; width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 10px; background: var(--primary); color: white; font-size: 1rem; font-weight: bold; cursor: pointer; text-align: center; }
         
-        /* リスト・表示設定 */
-        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; background: white; border-radius: 10px; margin-bottom: 8px; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; background: white; border-radius: 10px; margin-bottom: 8px; transition: background 0.2s; }
+        .list-item:active { background: #eef7ff; }
         .meaning-text { white-space: pre-wrap; line-height: 1.5; color: #444; }
-        
-        .res-item { padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #eee; }
-        .res-item.correct { background-color: var(--success-bg); border-color: #c3e6cb; }
-        .res-item.wrong { background-color: var(--error-bg); border-color: #f5c6cb; }
 
         /* カレンダー */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 15px; }
-        .calendar-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: bold; border: 1px solid #eee; background: white; font-size: 0.9rem; }
-        .has-study { background-color: var(--primary) !important; color: white; border: none; cursor: pointer; }
-        .today { border: 2px solid var(--accent); }
+        .calendar-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: bold; border: 1px solid #eee; background: white; font-size: 0.8rem; }
+        .has-study { background-color: var(--primary) !important; color: white; cursor: pointer; transition: transform 0.1s; }
+        .has-study:active { transform: scale(0.9); }
 
         #sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1900; }
         @media (min-width: 768px) {
@@ -63,7 +58,7 @@
         <div id="nav-calendar" class="nav-item" onclick="changePage('calendar')">カレンダー</div>
     </div>
 
-    <div class="main-content">
+    <div class="main-content" id="main-scroll-container">
         <div id="page-home" class="page active">
             <h1>学習状況</h1>
             <div class="card" id="home-stats">読み込み中...</div>
@@ -76,13 +71,12 @@
         </div>
 
         <div id="page-word-detail" class="page">
-            <div class="card"><div id="detail-content"></div><button class="btn" onclick="changePage('dictionary')" style="background:#888;">戻る</button></div>
+            <div class="card"><div id="detail-content"></div><button class="btn" onclick="backToDictionary()" style="background:#888;">単語帳に戻る</button></div>
         </div>
 
         <div id="page-quiz" class="page">
             <div id="quiz-menu" class="card">
                 <h1>テスト範囲を選択</h1>
-                <p style="color:#666; font-size:0.9rem;">10問のクイズが出題されます</p>
                 <button class="btn" onclick="startQuiz(1, 32)">1 - 32</button>
                 <button class="btn" onclick="startQuiz(33, 68)">33 - 68</button>
                 <button class="btn" onclick="startQuiz(69, 100)">69 - 100</button>
@@ -102,36 +96,36 @@
                 <h2>結果発表</h2>
                 <div id="res-score" style="font-size:3rem; color:var(--primary); font-weight:bold; margin:20px;"></div>
                 <button class="btn" onclick="goBackToMenu()">範囲選択に戻る</button>
-                <button class="btn" onclick="resetQuiz()" style="background:var(--accent)">同じ範囲でもう一度</button>
+                <button class="btn" onclick="resetQuiz()" style="background:#888;">同じ範囲でもう一度</button>
             </div>
         </div>
 
         <div id="page-history" class="page">
-            <h1>学習履歴一覧</h1>
+            <h1>学習履歴</h1>
             <div id="history-container"></div>
         </div>
 
-        <div id="page-calendar" class="page">
-            <h1>学習カレンダー</h1>
-            <div class="card">
-                <div id="calendar-month" style="text-align:center; font-weight:bold; font-size:1.1rem; margin-bottom:10px;"></div>
-                <div class="calendar-grid">
-                    <div style="color:red; text-align:center; font-size:0.8rem;">日</div><div style="text-align:center; font-size:0.8rem;">月</div><div style="text-align:center; font-size:0.8rem;">火</div><div style="text-align:center; font-size:0.8rem;">水</div><div style="text-align:center; font-size:0.8rem;">木</div><div style="text-align:center; font-size:0.8rem;">金</div><div style="color:blue; text-align:center; font-size:0.8rem;">土</div>
-                </div>
-                <div class="calendar-grid" id="calendar-body"></div>
-            </div>
+        <div id="page-history-detail" class="page">
+            <div class="card"><div id="his-detail-header"></div><div id="his-detail-body"></div></div>
+            <button class="btn" onclick="historyBack()" style="background:#888;">戻る</button>
         </div>
 
-        <div id="page-history-detail" class="page">
-            <div class="card"><div id="detail-header"></div><div id="detail-body"></div></div>
-            <button class="btn" id="btn-back-to-list" style="background:#888;">一覧に戻る</button>
+        <div id="page-calendar" class="page">
+            <h1>カレンダー</h1>
+            <div class="card">
+                <div id="calendar-month" style="text-align:center; font-weight:bold; margin-bottom:10px;"></div>
+                <div class="calendar-grid" id="calendar-body"></div>
+                <p style="font-size:0.8rem; color:#888; margin-top:10px; text-align:center;">※学習した日をタップするとその日の履歴を表示します</p>
+            </div>
         </div>
     </div>
 
 <script>
-    const MAIN_KEY = 'target100_everlasting_history';
+    const STORAGE_KEYS = ['target100_everlasting_history', 'target100_v3_data', 'target100_history'];
+    const MAIN_KEY = STORAGE_KEYS[0]; 
+    let lastViewedWordId = null;
+    let historySource = 'history'; // 'history' または 'calendar'
 
-    // 1-100 全単語データ
     const masterData = [
         {a:"believe", m:"(…ということ)を信じる,(…だ)と思う(that節);信じる\n▶believe in ~「~の存在を信じる」\n□belief 信じること ; 信念", q:"I believe that you will succeed."},
         {a:"consider", m:"を(…だと)みなす(to be);をよく考える\n▶「…することをよく考える」はconsider doingで表す。\n□considertion 考慮\n□considerate 思いやりのある\n□considerable かなりの", q:"We consider the lion to be the king of beasts."},
@@ -178,7 +172,7 @@
         {a:"language", m:"言語:言葉(遣い)\n▶spoken language 話し言葉\n▶written language 書き言葉", q:"Her native language is Chinese."},
         {a:"thought", m:"(…という)考え(of(doing)/that節);思考\n▶have second thought(s)考え直す\n□thoughtful思慮深い", q:"A new thought occurred to me."},
         {a:"knowledge", m:"知識:(~について)知っていること(of)\n□acknowledge動を認める:に礼を言う", q:"Translators require a good knowledge of English."},
-        {a:"skill", m:"技術,技能;熟練\n□skilled 熟練した\n□skillful 巧みな:熟練した", q:"We have to develop communication skills."},
+        {a:"skill", m:"技術,技能;熟練\n□skilled 熟練した\n□skillful 巧みに:熟練した", q:"We have to develop communication skills."},
         {a:"technology", m:"科学技術\n□technological 科学技術の\n□technique (専門)技術", q:"We live in the age of information technology."},
         {a:"culture", m:"文化\n□cultural  文化の:教養の", q:"Japanese popular culture has many fans."},
         {a:"experience", m:"経験:体験\nを経験する", q:"He experienced many difficulties in his life."},
@@ -235,36 +229,48 @@
         {a:"global", m:"地球全体の;世界的な", q:"Climate change is a global problem."}
     ];
 
-    let currentSet = [], currentIdx = 0, score = 0, sessionRes = [], lastRange = [1, 100];
+    // --- 履歴管理 ---
+    function getHistory() {
+        for (let key of STORAGE_KEYS) {
+            let data = localStorage.getItem(key);
+            if (data) return JSON.parse(data);
+        }
+        return [];
+    }
 
+    function saveHistory(newEntry) {
+        let hist = getHistory();
+        hist.unshift(newEntry);
+        localStorage.setItem(MAIN_KEY, JSON.stringify(hist.slice(0, 100)));
+    }
+
+    // --- ページ切り替え ---
     function changePage(p) {
         document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
         document.getElementById('page-'+p).classList.add('active');
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        
-        let navId = 'nav-' + p;
-        if(p === 'history-detail') navId = 'nav-history';
-        if(p === 'word-detail') navId = 'nav-dictionary';
-        if(document.getElementById(navId)) document.getElementById(navId).classList.add('active');
+        if(document.getElementById('nav-'+p)) document.getElementById('nav-'+p).classList.add('active');
         
         if(p === 'home') updateHomeStats();
-        if(p === 'calendar') renderCalendar();
         if(p === 'dictionary') initDictionary();
-        if(p === 'history') renderHistoryList();
-        if(p === 'quiz') goBackToMenu(); // 常にメニューから開始
+        if(p === 'history') { historySource = 'history'; renderHistoryList(); }
+        if(p === 'calendar') renderCalendar();
+        if(p === 'quiz') goBackToMenu();
 
         if(window.innerWidth < 768) toggleMenu(false);
     }
 
     function updateHomeStats() {
-        const hist = JSON.parse(localStorage.getItem(MAIN_KEY) || '[]');
-        document.getElementById('home-stats').innerHTML = `<p>累計学習回数: <b>${hist.length} 回</b></p><p>単語数: <b>100 語</b></p>`;
+        const hist = getHistory();
+        document.getElementById('home-stats').innerHTML = `<p>累計学習回数: <b>${hist.length} 回</b></p><p>収録単語数: <b>${masterData.length} 語</b></p>`;
     }
 
+    // --- 単語帳 ---
     function initDictionary() {
         const listEl = document.getElementById('dictionary-list');
+        if(listEl.innerHTML !== "") return;
         listEl.innerHTML = masterData.map((item, idx) => `
-            <div class="list-item" onclick="showWordDetail(${idx})">
+            <div class="list-item" id="word-item-${idx}" onclick="showWordDetail(${idx})">
                 <span style="font-weight:bold; color:var(--primary)">${idx + 1}. ${item.a}</span>
                 <span style="color:#ccc">＞</span>
             </div>
@@ -272,77 +278,75 @@
     }
 
     function showWordDetail(idx) {
+        lastViewedWordId = idx;
         const item = masterData[idx];
         document.getElementById('detail-content').innerHTML = `
             <div style="font-size:1.8rem; font-weight:bold; color:var(--primary);">${item.a}</div>
             <div class="card" style="margin:15px 0; background:#f9f9f9; box-shadow:none; border:1px solid #eee;">
-                <div class="meaning-text" style="font-size:1rem;">${item.m}</div>
+                <div class="meaning-text">${item.m}</div>
             </div>
             <div style="color:#666;"><b>例文:</b><br><i>${item.q}</i></div>
         `;
         changePage('word-detail');
     }
 
-    // クイズ管理
+    function backToDictionary() {
+        changePage('dictionary');
+        if (lastViewedWordId !== null) {
+            const targetEl = document.getElementById(`word-item-${lastViewedWordId}`);
+            if (targetEl) {
+                setTimeout(() => {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    targetEl.style.background = "#eef7ff";
+                    setTimeout(() => targetEl.style.background = "white", 1000);
+                }, 50);
+            }
+        }
+    }
+
+    // --- クイズ ---
+    let currentSet = [], currentIdx = 0, score = 0, sessionRes = [], lastRange = [1, 100];
     function goBackToMenu() {
         document.getElementById('quiz-menu').style.display = 'block';
         document.getElementById('quiz-game').style.display = 'none';
         document.getElementById('quiz-feedback').style.display = 'none';
         document.getElementById('quiz-result').style.display = 'none';
     }
-
     function startQuiz(min, max) {
         lastRange = [min, max];
         const pool = masterData.slice(min-1, max);
         currentSet = [...pool].sort(()=>Math.random()-0.5).slice(0, 10);
         currentIdx = 0; score = 0; sessionRes = [];
-        
         document.getElementById('quiz-menu').style.display='none';
         document.getElementById('quiz-game').style.display='block';
-        document.getElementById('quiz-feedback').style.display='none';
-        document.getElementById('quiz-result').style.display='none';
         loadQ();
     }
-
-    function resetQuiz() {
-        startQuiz(lastRange[0], lastRange[1]);
-    }
-
+    function resetQuiz() { startQuiz(lastRange[0], lastRange[1]); }
     function loadQ() {
         const qData = currentSet[currentIdx];
         document.getElementById('q-progress').innerText = `問題 ${currentIdx+1} / 10`;
         document.getElementById('q-text').innerText = qData.q.replace(new RegExp(qData.a, 'gi'), ' ( ____ ) ');
-        const container = document.getElementById('q-options');
-        container.innerHTML = '';
-        
+        const container = document.getElementById('q-options'); container.innerHTML = '';
         let opts = [qData.a];
         while(opts.length < 4) {
             let r = masterData[Math.floor(Math.random()*masterData.length)].a;
             if(!opts.includes(r)) opts.push(r);
         }
         opts.sort(()=>Math.random()-0.5).forEach(o => {
-            const b = document.createElement('button');
-            b.className = 'btn'; b.style.background='white'; b.style.color='#333'; b.style.border='2px solid #eee';
-            b.innerText = o;
-            b.onclick = () => checkAnswer(o, qData);
-            container.appendChild(b);
+            const b = document.createElement('button'); b.className = 'btn'; b.style.background='white'; b.style.color='#333'; b.style.border='2px solid #eee';
+            b.innerText = o; b.onclick = () => checkAnswer(o, qData); container.appendChild(b);
         });
     }
-
     function checkAnswer(userAns, qData) {
         const isOk = (userAns === qData.a);
         if(isOk) score++;
         sessionRes.push({q:qData.q, a:qData.a, am:qData.m, u:userAns, ok:isOk});
-        
         document.getElementById('quiz-game').style.display = 'none';
-        const fb = document.getElementById('quiz-feedback');
-        fb.style.display = 'block';
-        fb.style.backgroundColor = isOk ? "var(--success-bg)" : "var(--error-bg)";
+        const fb = document.getElementById('quiz-feedback'); fb.style.display = 'block';
         document.getElementById('fb-status').innerText = isOk ? "正解！" : "不正解...";
         document.getElementById('fb-status').style.color = isOk ? "var(--success)" : "var(--error)";
-        document.getElementById('fb-content').innerHTML = `正解: <b>${qData.a}</b><br><div class="meaning-text" style="font-size:0.9rem; margin-top:10px;">${qData.m}</div>`;
+        document.getElementById('fb-content').innerHTML = `正解: <b>${qData.a}</b><br><div class="meaning-text" style="font-size:0.9rem;">${qData.m}</div>`;
     }
-
     function nextQuestion() {
         currentIdx++;
         document.getElementById('quiz-feedback').style.display = 'none';
@@ -352,69 +356,95 @@
         } else {
             document.getElementById('quiz-result').style.display='block';
             document.getElementById('res-score').innerText = `${score} / 10`;
-            saveHistory();
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+            saveHistory({ date: dateStr, score: `${score}/10`, details: sessionRes });
         }
     }
 
-    function saveHistory() {
-        let hist = JSON.parse(localStorage.getItem(MAIN_KEY) || '[]');
-        const now = new Date();
-        const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-        hist.unshift({ date: dateStr, score: `${score}/10`, details: sessionRes });
-        localStorage.setItem(MAIN_KEY, JSON.stringify(hist.slice(0, 100)));
-    }
-
-    // 履歴管理
+    // --- 履歴・カレンダーロジック ---
     function renderHistoryList() {
         const container = document.getElementById('history-container');
-        const hist = JSON.parse(localStorage.getItem(MAIN_KEY) || '[]');
+        const hist = getHistory();
         if(hist.length === 0) {
-            container.innerHTML = '<div class="card">まだ履歴がありません。</div>';
-            return;
+            container.innerHTML = '<div class="card">履歴はありません</div>'; return;
         }
         container.innerHTML = hist.map((r, idx) => `
-            <div class="list-item" onclick="viewDetail(${idx})">
-                <div><div style="font-size:0.8rem; color:#888;">${r.date.split(' ')[0]}</div><b>${r.date.split(' ')[1]}</b> のテスト</div>
-                <div style="color:var(--primary); font-weight:bold;">${r.score} ＞</div>
+            <div class="list-item" onclick="viewHistoryDetail(${idx})">
+                <div><small>${r.date}</small><br><b>スコア: ${r.score}</b></div>
+                <span>＞</span>
             </div>
         `).join('');
     }
 
-    function viewDetail(idx) {
-        const hist = JSON.parse(localStorage.getItem(MAIN_KEY) || '[]');
+    // カレンダーで日にちを選んだときに「その日の履歴一覧」を出す
+    function viewDayHistory(y, m, d) {
+        const hist = getHistory();
+        const datePrefix = `${y}/${m+1}/${d} `;
+        const dayHistories = hist.map((h, i) => ({...h, originalIdx: i})).filter(h => h.date.startsWith(datePrefix));
+
+        if(dayHistories.length === 0) return;
+
+        historySource = 'calendar';
+        const container = document.getElementById('history-container');
+        container.innerHTML = `<h3>${y}/${m+1}/${d} の履歴</h3>` + dayHistories.map(r => `
+            <div class="list-item" onclick="viewHistoryDetail(${r.originalIdx})">
+                <div><small>${r.date}</small><br><b>スコア: ${r.score}</b></div>
+                <span>＞</span>
+            </div>
+        `).join('') + `<button class="btn" onclick="changePage('calendar')" style="background:#888; margin-top:20px;">カレンダーに戻る</button>`;
+        
+        changePage('history');
+    }
+
+    function viewHistoryDetail(idx) {
+        const hist = getHistory();
         const r = hist[idx];
-        document.getElementById('detail-header').innerHTML = `<h3>${r.date}</h3><p>スコア: ${r.score}</p>`;
-        document.getElementById('detail-body').innerHTML = r.details.map((d, i) => `
-            <div class="res-item ${d.ok ? 'correct' : 'wrong'}">
-                <b>Q${i+1}: ${d.q}</b><br>正解: ${d.a} / 回答: ${d.u}
-                <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #ccc; font-size:0.85rem;" class="meaning-text">${d.am}</div>
+        if(!r) return;
+        document.getElementById('his-detail-header').innerHTML = `<h3>${r.date}</h3><b>スコア: ${r.score}</b>`;
+        document.getElementById('his-detail-body').innerHTML = r.details.map((d, i) => `
+            <div style="margin:10px 0; padding:10px; border:1px solid #eee; border-radius:8px; background:${d.ok?'#f0fff0':'#fff0f0'}">
+                Q${i+1}: ${d.q}<br>正解: ${d.a} / 回答: ${d.u}
             </div>
         `).join('');
-        document.getElementById('btn-back-to-list').onclick = () => changePage('history');
         changePage('history-detail');
     }
 
+    function historyBack() {
+        if(historySource === 'calendar') {
+            // カレンダーからの場合は履歴リスト（その日の分）に戻る
+            changePage('history');
+        } else {
+            // 通常の履歴からの場合は全履歴に戻る
+            changePage('history');
+        }
+    }
+
     function renderCalendar() {
-        const body = document.getElementById('calendar-body');
+        const body = document.getElementById('calendar-body'); 
         body.innerHTML = '';
-        const now = new Date(), y = now.getFullYear(), m = now.getMonth();
-        document.getElementById('calendar-month').innerText = `${y}年 ${m + 1}月`;
+        const now = new Date(); 
+        const y = now.getFullYear(), m = now.getMonth();
+        document.getElementById('calendar-month').innerText = `${y}年 ${m+1}月`;
+        
+        const hist = getHistory();
         const firstDay = new Date(y, m, 1).getDay();
         const daysInMonth = new Date(y, m + 1, 0).getDate();
-        const history = JSON.parse(localStorage.getItem(MAIN_KEY) || '[]');
 
         for (let i = 0; i < firstDay; i++) body.appendChild(document.createElement('div'));
+
         for (let d = 1; d <= daysInMonth; d++) {
-            const div = document.createElement('div');
-            div.className = 'calendar-day';
+            const div = document.createElement('div'); 
+            div.className = 'calendar-day'; 
             div.innerText = d;
-            const dateStr = `${y}/${m+1}/${d}`;
-            const hasStudy = history.some(h => h.date.split(' ')[0] === dateStr);
-            if (hasStudy) {
+            
+            const datePrefix = `${y}/${m+1}/${d} `;
+            const hasData = hist.some(h => h.date.startsWith(datePrefix));
+
+            if (hasData) {
                 div.classList.add('has-study');
-                div.onclick = () => changePage('history'); // カレンダーから履歴一覧へ
+                div.onclick = () => viewDayHistory(y, m, d);
             }
-            if (d === now.getDate() && m === now.getMonth()) div.classList.add('today');
             body.appendChild(div);
         }
     }
@@ -422,11 +452,10 @@
     function toggleMenu(force) {
         const s = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay');
         const open = (force !== undefined) ? force : !s.classList.contains('open');
-        s.classList.toggle('open', open);
-        o.style.display = open ? 'block' : 'none';
+        s.classList.toggle('open', open); o.style.display = open ? 'block' : 'none';
     }
 
-    // 初期化
+    // 初期起動
     updateHomeStats();
 </script>
 </body>
