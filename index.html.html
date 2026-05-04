@@ -9,9 +9,13 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: #333; overflow: hidden; }
 
+        /* サイドバー */
         .sidebar { width: 240px; background: var(--sidebar-bg); color: white; display: flex; flex-direction: column; padding-top: 20px; flex-shrink: 0; position: absolute; height: 100%; z-index: 2000; transition: transform 0.3s ease; transform: translateX(-100%); }
         .sidebar.open { transform: translateX(0); }
-        .nav-item { padding: 18px 25px; cursor: pointer; color: #bdc3c7; border-left: 4px solid transparent; }
+        
+        /* ナビゲーション項目（通常時とアクティブ時） */
+        .nav-item { padding: 18px 25px; cursor: pointer; color: #bdc3c7; border-left: 4px solid transparent; transition: 0.2s; }
+        .nav-item:hover { background: #3e5871; color: white; }
         .nav-item.active { background: #34495e; border-left: 4px solid var(--primary); color: white; font-weight: bold; }
 
         .mobile-header { display: flex; align-items: center; background: var(--sidebar-bg); color: white; width: 100%; height: 50px; position: fixed; top: 0; left: 0; z-index: 1500; padding: 0 15px; }
@@ -23,16 +27,6 @@
         .btn { display: block; width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 10px; background: var(--primary); color: white; font-size: 1rem; font-weight: bold; cursor: pointer; text-align: center; }
         .option-btn { display: block; width: 100%; padding: 16px; margin: 8px 0; border: 2px solid #eee; border-radius: 12px; background: white; cursor: pointer; text-align: left; font-size: 1.05rem; }
         
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; }
-        .btn-sm { padding: 8px 12px; font-size: 0.8rem; background: var(--sidebar-bg); color: white; border-radius: 5px; border: none; }
-
-        @media print {
-            body * { visibility: hidden; }
-            #print-area, #print-area * { visibility: visible; }
-            #print-area { position: absolute; left: 0; top: 0; width: 100%; }
-            .btn, .sidebar, .mobile-header { display: none !important; }
-        }
-
         #sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1900; }
         
         @media (min-width: 768px) {
@@ -46,19 +40,20 @@
 
     <div class="mobile-header"><button style="background:none; border:none; color:white; font-size:20px;" onclick="toggleMenu()">☰ Menu</button></div>
     <div id="sidebar-overlay" onclick="toggleMenu()"></div>
+    
     <div class="sidebar" id="sidebar">
         <h2 style="text-align:center">Word Study</h2>
-        <div id="btn-home" class="nav-item active" onclick="changePage('home')">ホーム</div>
-        <div id="btn-quiz" class="nav-item" onclick="changePage('quiz')">単語クイズ</div>
-        <div id="btn-history" class="nav-item" onclick="changePage('history')">学習履歴</div>
+        <div id="nav-home" class="nav-item active" onclick="changePage('home')">ホーム</div>
+        <div id="nav-quiz" class="nav-item" onclick="changePage('quiz')">単語クイズ</div>
+        <div id="nav-history" class="nav-item" onclick="changePage('history')">学習履歴</div>
     </div>
 
     <div class="main-content">
         <div id="page-home" class="page active">
-            <h1>単語学習 1-101</h1>
+            <h1>ホーム</h1>
             <div class="card">
-                <h3>believe ～ nonetheless</h3>
-                <p>Excelの順番通りに分割しました。範囲を選んで開始してください。</p>
+                <h3>1-101 単語テスト</h3>
+                <p>サイドメニューから「単語クイズ」を選択して開始してください。</p>
             </div>
         </div>
 
@@ -86,22 +81,13 @@
             <div id="quiz-result" class="card" style="display:none; text-align:center;">
                 <h2>結果発表</h2>
                 <div id="res-score" style="font-size:3rem; color:var(--primary); font-weight:bold; margin:20px;"></div>
-                <button class="btn" onclick="changePage('history')">履歴からPDFを保存</button>
+                <button class="btn" onclick="changePage('history')">履歴を確認</button>
             </div>
         </div>
 
         <div id="page-history" class="page">
             <h1>学習履歴</h1>
-            <div class="card" id="history-container">履歴がありません。</div>
-        </div>
-
-        <div id="page-pdf-view" class="page">
-            <div id="print-area" class="card">
-                <div id="pdf-header"></div>
-                <div id="pdf-body"></div>
-            </div>
-            <button class="btn" onclick="window.print()" style="background:#2ecc71;">PDFとして保存</button>
-            <button class="btn" onclick="changePage('history')" style="background:#888;">一覧に戻る</button>
+            <div id="history-container">履歴がありません。</div>
         </div>
     </div>
 
@@ -211,7 +197,7 @@
         {a:"nonetheless", m:"それにもかかわらず", q:"It was raining; (____), we went out."}
     ];
 
-    let currentSet = [], currentIdx = 0, score = 0, sessionRes = [];
+    let currentSet = [], currentIdx = 0, score = 0;
 
     function toggleMenu() {
         const s = document.getElementById('sidebar');
@@ -220,26 +206,37 @@
         o.style.display = open ? 'block' : 'none';
     }
 
+    // ページ切り替えとナビ強調
     function changePage(p) {
+        // 全ページ非表示
         document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
+        // 対象ページ表示
         document.getElementById('page-'+p).classList.add('active');
+
+        // ナビ項目の色リセット & アクティブ化
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        document.getElementById('nav-'+p).classList.add('active');
+
+        // モバイル用メニュー閉じ
         if(window.innerWidth < 768) {
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('sidebar-overlay').style.display='none';
         }
-        if(p === 'history') updateHistoryList();
-        if(p === 'quiz') {
-            document.getElementById('quiz-menu').style.display='block';
-            document.getElementById('quiz-game').style.display='none';
-            document.getElementById('quiz-feedback').style.display='none';
-            document.getElementById('quiz-result').style.display='none';
-        }
+
+        if(p === 'quiz') resetQuizMenu();
+    }
+
+    function resetQuizMenu() {
+        document.getElementById('quiz-menu').style.display='block';
+        document.getElementById('quiz-game').style.display='none';
+        document.getElementById('quiz-feedback').style.display='none';
+        document.getElementById('quiz-result').style.display='none';
     }
 
     function startQuiz(min, max) {
         const pool = masterData.slice(min-1, max);
         currentSet = [...pool].sort(()=>Math.random()-0.5).slice(0, 10);
-        currentIdx = 0; score = 0; sessionRes = [];
+        currentIdx = 0; score = 0;
         document.getElementById('quiz-menu').style.display='none';
         document.getElementById('quiz-game').style.display='block';
         loadQ();
@@ -267,7 +264,6 @@
     function checkAnswer(userAns, qData) {
         const isOk = (userAns === qData.a);
         if(isOk) score++;
-        sessionRes.push({q:qData.q, a:qData.a, am:qData.m, u:userAns, ok:isOk});
         document.getElementById('quiz-game').style.display = 'none';
         const fb = document.getElementById('quiz-feedback');
         fb.style.display = 'block';
@@ -276,7 +272,7 @@
         st.style.color = isOk ? "var(--success)" : "var(--error)";
         fb.style.borderColor = isOk ? "var(--success)" : "var(--error)";
         document.getElementById('fb-content').innerHTML = `
-            <div><span style="font-size:1.2rem; font-weight:bold; color:var(--success);">正解: ${qData.a}</span><br><small>${qData.m}</small></div>
+            <div><b>正解: ${qData.a}</b><br><small>${qData.m}</small></div>
             ${!isOk ? `<div style="margin-top:10px; color:#666; border-top:1px dashed #ccc; padding-top:10px;">あなたの回答: ${userAns}</div>` : ''}
         `;
     }
@@ -288,46 +284,9 @@
             document.getElementById('quiz-game').style.display = 'block';
             loadQ();
         } else {
-            finishQuiz();
+            document.getElementById('quiz-result').style.display='block';
+            document.getElementById('res-score').innerText = `${score} / ${currentSet.length}`;
         }
-    }
-
-    function finishQuiz() {
-        document.getElementById('quiz-result').style.display='block';
-        document.getElementById('res-score').innerText = `${score} / ${currentSet.length}`;
-        let hist = JSON.parse(localStorage.getItem('eng_101_history') || '[]');
-        hist.unshift({date: new Date().toLocaleString(), score: `${score}/${currentSet.length}`, details: sessionRes});
-        localStorage.setItem('eng_101_history', JSON.stringify(hist.slice(0, 20)));
-    }
-
-    function updateHistoryList() {
-        const container = document.getElementById('history-container');
-        const hist = JSON.parse(localStorage.getItem('eng_101_history') || '[]');
-        if(hist.length === 0) { container.innerHTML = "履歴がありません。"; return; }
-        let html = "";
-        hist.forEach((h, i) => {
-            html += `<div class="history-item">
-                <div style="flex:1"><b>${h.date}</b><br>点数: ${h.score}</div>
-                <button class="btn-sm" onclick="viewPDF(${i})">詳細/PDF</button>
-            </div>`;
-        });
-        container.innerHTML = html;
-    }
-
-    function viewPDF(index) {
-        const hist = JSON.parse(localStorage.getItem('eng_101_history') || '[]');
-        const data = hist[index];
-        document.getElementById('pdf-header').innerHTML = `<h2 style="text-align:center;">テスト結果レポート</h2><p style="text-align:center;">${data.date} / スコア: ${data.score}</p><hr>`;
-        let body = "";
-        data.details.forEach((d, i) => {
-            body += `<div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px; page-break-inside:avoid;">
-                <b>Q${i+1}: ${d.q}</b><br>
-                ${d.ok ? '○ 正解' : '× 不正解'} (正解: ${d.a} / あなた: ${d.u})<br>
-                <small style="color:#666;">意味: ${d.am}</small>
-            </div>`;
-        });
-        document.getElementById('pdf-body').innerHTML = body;
-        changePage('pdf-view');
     }
 </script>
 </body>
