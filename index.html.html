@@ -3,15 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>英単語学習 1-101</title>
+    <title>英単語学習 Target 100 (完全復元版)</title>
     <style>
-        :root { --primary: #3498db; --sidebar-bg: #2c3e50; --bg: #f4f7f6; --white: #ffffff; --success: #28a745; --error: #dc3545; }
+        :root { 
+            --primary: #3498db; 
+            --sidebar-bg: #2c3e50; 
+            --bg: #f4f7f6; 
+            --white: #ffffff; 
+            --success: #28a745; 
+            --success-bg: #eaffed; 
+            --error: #dc3545; 
+            --error-bg: #fff0f0; 
+            --accent: #e67e22; 
+        }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: #333; overflow: hidden; }
+        body { font-family: 'Helvetica Neue', Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: #333; overflow: hidden; }
 
         .sidebar { width: 240px; background: var(--sidebar-bg); color: white; display: flex; flex-direction: column; padding-top: 20px; flex-shrink: 0; position: absolute; height: 100%; z-index: 2000; transition: transform 0.3s ease; transform: translateX(-100%); }
         .sidebar.open { transform: translateX(0); }
-        
         .nav-item { padding: 18px 25px; cursor: pointer; color: #bdc3c7; border-left: 4px solid transparent; transition: 0.2s; }
         .nav-item:hover { background: #3e5871; color: white; }
         .nav-item.active { background: #34495e; border-left: 4px solid var(--primary); color: white; font-weight: bold; }
@@ -22,21 +31,21 @@
         .page.active { display: block; }
 
         .card { background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        .btn { display: block; width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 10px; background: var(--primary); color: white; font-size: 1rem; font-weight: bold; cursor: pointer; text-align: center; }
-        .option-btn { display: block; width: 100%; padding: 16px; margin: 8px 0; border: 2px solid #eee; border-radius: 12px; background: white; cursor: pointer; text-align: left; font-size: 1.05rem; }
+        .btn { display: block; width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 10px; background: var(--primary); color: white; font-size: 1rem; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; }
         
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; background: white; margin-bottom: 5px; border-radius: 8px; }
-        .btn-sm { padding: 8px 12px; font-size: 0.8rem; background: var(--sidebar-bg); color: white; border-radius: 5px; border: none; cursor: pointer; }
+        /* 正解・不正解の色分け強化 */
+        .res-item { padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #eee; }
+        .res-item.correct { background-color: var(--success-bg); border-color: #c3e6cb; }
+        .res-item.wrong { background-color: var(--error-bg); border-color: #f5c6cb; }
+        .res-label { font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; display: inline-block; padding: 2px 8px; border-radius: 4px; }
+        .correct .res-label { background: var(--success); color: white; }
+        .wrong .res-label { background: var(--error); color: white; }
 
-        @media print {
-            body * { visibility: hidden; }
-            #print-area, #print-area * { visibility: visible; }
-            #print-area { position: absolute; left: 0; top: 0; width: 100%; }
-            .btn, .sidebar, .mobile-header { display: none !important; }
-        }
+        .detail-word { font-size: 2.2rem; font-weight: bold; color: var(--primary); margin-bottom: 10px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .detail-meaning { font-size: 1.05rem; line-height: 1.7; white-space: pre-wrap; margin: 10px 0; color: #333; }
+        .detail-example { font-size: 1.1rem; background: #fff9f0; padding: 15px; border-radius: 8px; border-left: 4px solid var(--accent); font-style: italic; }
 
         #sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1900; }
-        
         @media (min-width: 768px) {
             .mobile-header { display: none; }
             .sidebar { transform: translateX(0); position: relative; width: 220px; }
@@ -52,6 +61,7 @@
     <div class="sidebar" id="sidebar">
         <h2 style="text-align:center">Word Study</h2>
         <div id="nav-home" class="nav-item active" onclick="changePage('home')">ホーム</div>
+        <div id="nav-dictionary" class="nav-item" onclick="changePage('dictionary')">単語帳</div>
         <div id="nav-quiz" class="nav-item" onclick="changePage('quiz')">単語クイズ</div>
         <div id="nav-history" class="nav-item" onclick="changePage('history')">学習履歴</div>
     </div>
@@ -59,166 +69,168 @@
     <div class="main-content">
         <div id="page-home" class="page active">
             <h1>ホーム</h1>
-            <div class="card">
-                <h3>1-101 単語テスト</h3>
-                <p>サイドメニューから範囲を選んでテストを開始してください。結果は「学習履歴」に保存されます。</p>
-            </div>
+            <div class="card"><h3>英単語 1-100</h3><p>以前のスタイルで全ての意味情報を復元しました。左メニューから学習を始めてください。</p></div>
         </div>
-
+        <div id="page-dictionary" class="page">
+            <h1>単語帳</h1>
+            <div id="dictionary-list" class="card" style="padding:0; overflow:hidden;"></div>
+        </div>
+        <div id="page-word-detail" class="page">
+            <div class="card"><div id="detail-content"></div><button class="btn" onclick="changePage('dictionary')" style="background:#888; margin-top:20px;">一覧に戻る</button></div>
+        </div>
         <div id="page-quiz" class="page">
             <div id="quiz-menu" class="card">
-                <h1>テスト範囲を選択</h1>
-                <button class="btn" onclick="startQuiz(1, 32)">1 ～ 32 (ランダム10問)</button>
-                <button class="btn" onclick="startQuiz(33, 68)">33 ～ 68 (ランダム10問)</button>
-                <button class="btn" onclick="startQuiz(69, 101)">69 ～ 101 (ランダム10問)</button>
-                <button class="btn" onclick="startQuiz(1, 101)" style="background:#2c3e50">1 ～ 101 (全ランダム10問)</button>
+                <h1>テスト範囲</h1>
+                <button class="btn" onclick="startQuiz(1, 32)">1-32</button>
+                <button class="btn" onclick="startQuiz(33, 68)">33-68</button>
+                <button class="btn" onclick="startQuiz(69, 100)">69-100</button>
+                <button class="btn" onclick="startQuiz(1, 100)" style="background:#2c3e50">全範囲 (1-100)</button>
             </div>
-            
-            <div id="quiz-game" class="card" style="display:none;">
-                <div id="q-progress" style="color:#888; margin-bottom:10px;"></div>
-                <div id="q-text" style="font-size:1.3rem; margin-bottom:20px; font-weight:bold;"></div>
-                <div id="q-options"></div>
-            </div>
-
-            <div id="quiz-feedback" class="card" style="display:none; border-top:8px solid #ccc;">
-                <div id="fb-status" style="font-size:1.5rem; font-weight:bold; margin-bottom:15px; text-align:center;"></div>
-                <div id="fb-content" style="background:#f9f9f9; padding:15px; border-radius:8px;"></div>
-                <button class="btn" onclick="nextQuestion()" style="margin-top:20px; background:var(--sidebar-bg)">次へ進む</button>
-            </div>
-
-            <div id="quiz-result" class="card" style="display:none; text-align:center;">
-                <h2>結果発表</h2>
-                <div id="res-score" style="font-size:3rem; color:var(--primary); font-weight:bold; margin:20px;"></div>
-                <button class="btn" onclick="changePage('history')">履歴を確認する</button>
-            </div>
+            <div id="quiz-game" class="card" style="display:none;"><div id="q-progress"></div><div id="q-text" style="font-size:1.3rem; margin:20px 0; font-weight:bold;"></div><div id="q-options"></div></div>
+            <div id="quiz-feedback" class="card" style="display:none; border-top:8px solid #ccc;"><div id="fb-status" style="font-size:1.5rem; font-weight:bold; text-align:center;"></div><div id="fb-content" style="padding:15px; border-radius:8px; margin-top:10px;"></div><button class="btn" onclick="nextQuestion()" style="margin-top:20px; background:var(--sidebar-bg)">次へ進む</button></div>
+            <div id="quiz-result" class="card" style="display:none; text-align:center;"><h2>結果発表</h2><div id="res-score" style="font-size:3rem; color:var(--primary); font-weight:bold; margin:20px;"></div><button class="btn" onclick="changePage('history')">履歴を確認する</button></div>
         </div>
-
         <div id="page-history" class="page">
             <h1>学習履歴</h1>
-            <div id="history-container">履歴がありません。</div>
+            <div id="history-container"></div>
         </div>
-
         <div id="page-pdf-view" class="page">
-            <div id="print-area" class="card">
-                <div id="pdf-header"></div>
-                <div id="pdf-body"></div>
-            </div>
+            <div id="print-area" class="card"><div id="pdf-header"></div><div id="pdf-body"></div></div>
             <button class="btn" onclick="window.print()" style="background:#2ecc71;">PDFとして保存</button>
-            <button class="btn" onclick="changePage('history')" style="background:#888;">一覧に戻る</button>
+            <button class="btn" onclick="changePage('history')" style="background:#888;">戻る</button>
         </div>
     </div>
 
 <script>
     const masterData = [
-        {a:"believe", m:"(…ということ)を信じる", q:"I (____) that you will succeed."},
-        {a:"consider", m:"を(…だと)みなす", q:"We (____) the lion to be the king of beasts."},
-        {a:"expect", m:"を予期する", q:"He (____) the problem to get worse."},
-        {a:"decide", m:"(を)決める", q:"I have (____) to buy a new car."},
-        {a:"allow", m:"を許す", q:"She did not (____) her daughter to go to the party."},
-        {a:"remember", m:"(を)覚えている", q:"I (____) visiting Kyoto when I was a student."},
-        {a:"worry", m:"心配する(about)", q:"You shouldn't (____) about the future."},
-        {a:"concern", m:"に関係する", q:"The report (____) environmental issues."},
-        {a:"suggest", m:"を提案する", q:"I (____) that we should take a break."},
-        {a:"explain", m:"(を)説明する", q:"Can you (____) how this machine works?"},
-        {a:"describe", m:"を詳しく説明する", q:"He (____) the scene in great detail."},
-        {a:"improve", m:"を向上させる", q:"I want to (____) my English skills."},
-        {a:"produce", m:"を生産する", q:"The factory (____) 500 cars a month."},
-        {a:"create", m:"を創造する", q:"She (____) a beautiful work of art."},
-        {a:"provide", m:"を供給する", q:"The school (____) students with lunches."},
-        {a:"support", m:"を支持する", q:"My family always (____) my decisions."},
-        {a:"prevent", m:"を妨げる", q:"The medicine (____) the disease from spreading."},
-        {a:"increase", m:"を増やす", q:"The population of the city is (____)."},
-        {a:"decrease", m:"を減らす", q:"The price of oil has (____)."},
-        {a:"reduce", m:"を減らす", q:"We need to (____) our spending."},
-        {a:"achieve", m:"を達成する", q:"He (____) his goal of becoming a doctor."},
-        {a:"manage", m:"を何とかやり遂げる", q:"She (____) to finish the work on time."},
-        {a:"prepare", m:"の準備をする", q:"I'm (____) for the entrance exam."},
-        {a:"develop", m:"を発達させる", q:"They are (____) a new type of software."},
-        {a:"encourage", m:"を勇気づける", q:"My teacher (____) me to study harder."},
-        {a:"remain", m:"ままである", q:"The secret (____) unknown for many years."},
-        {a:"exist", m:"存在する", q:"Does life (____) on other planets?"},
-        {a:"survive", m:"を生き延びる", q:"Many animals (____) the cold winter."},
-        {a:"maintain", m:"を維持する", q:"It's important to (____) a healthy lifestyle."},
-        {a:"experience", m:"を経験する", q:"He (____) many difficulties in his life."},
-        {a:"opportunity", m:"機会,好機", q:"I had the (____) to study abroad."},
-        {a:"situation", m:"状況,境遇", q:"We are in a very difficult (____)."},
-        {a:"condition", m:"状態,容体", q:"The car is in good (____)."},
-        {a:"benefit", m:"利益,恩恵", q:"There are many (____) to exercise."},
-        {a:"value", m:"価値,価格", q:"The (____) of the house has increased."},
-        {a:"result", m:"結果;結末", q:"The (____) of the exam was good."},
-        {a:"cause", m:"原因;理由", q:"What was the (____) of the accident?"},
-        {a:"effect", m:"影響,効果", q:"The medicine had a strange (____)."},
-        {a:"theory", m:"理論;学説", q:"He developed a new scientific (____)."},
-        {a:"evidence", m:"証拠,根拠", q:"There is no (____) that he did it."},
-        {a:"society", m:"社会;協会", q:"We live in a modern (____)."},
-        {a:"community", m:"地域社会", q:"The (____) worked together to clean the park."},
-        {a:"government", m:"政府;政治", q:"The (____) decided to raise taxes."},
-        {a:"policy", m:"政策,方針", q:"The company has a strict (____)."},
-        {a:"economy", m:"経済;節約", q:"The country's (____) is growing."},
-        {a:"industry", m:"産業;工業", q:"The car (____) is very important."},
-        {a:"culture", m:"文化;教養", q:"I want to learn about different (____)."},
-        {a:"tradition", m:"伝統;慣習", q:"They follow the (____) of their ancestors."},
-        {a:"environment", m:"(自然)環境", q:"We must protect the (____)."},
-        {a:"pollution", m:"汚染;公害", q:"Air (____) is a serious problem."},
-        {a:"resource", m:"資源;資金", q:"Water is a precious (____)."},
-        {a:"energy", m:"エネルギー", q:"We need to find new sources of (____)."},
-        {a:"issue", m:"問題点;発行", q:"This is a very important (____)."},
-        {a:"standard", m:"水準,基準", q:"The living (____) has improved."},
-        {a:"quality", m:"質;特性", q:"The (____) of the product is high."},
-        {a:"amount", m:"量;総計", q:"A large (____) of money was stolen."},
-        {a:"degree", m:"程度;度;学位", q:"He has a (____) in economics."},
-        {a:"pressure", m:"圧力;重圧", q:"She is under a lot of (____)."},
-        {a:"effort", m:"努力", q:"You should make an (____) to be on time."},
-        {a:"purpose", m:"目的,意図", q:"What is the (____) of your visit?"},
-        {a:"opinion", m:"意見;持論", q:"In my (____), this plan is not good."},
-        {a:"reason", m:"理由;道理", q:"Is there a (____) why you are late?"},
-        {a:"fact", m:"事実;実態", q:"In (____), she didn't know anything."},
-        {a:"matter", m:"事柄;問題", q:"It's only a (____) of time."},
-        {a:"subject", m:"主題;科目", q:"English is my favorite (____)."},
-        {a:"knowledge", m:"知識;知ること", q:"He has a wide (____) of history."},
-        {a:"skill", m:"技術,技能", q:"Developing new (____) is important."},
-        {a:"ability", m:"能力;才能", q:"She has the (____) to play the piano."},
-        {a:"individual", m:"個人;個体", q:"We should respect (____) differences."},
-        {a:"average", m:"平均", q:"The (____) age of the students is twenty."},
-        {a:"common", m:"共通の;普通の", q:"It's a (____) mistake among learners."},
-        {a:"public", m:"公衆の;公立の", q:"Smoking is prohibited in (____) places."},
-        {a:"private", m:"個人の;内密の", q:"I want to keep my (____) life separate."},
-        {a:"social", m:"社会の;社交的な", q:"They have active (____) lives."},
-        {a:"political", m:"政治の;政治的な", q:"He is interested in (____) issues."},
-        {a:"economic", m:"経済の;経済的な", q:"The country is facing (____) difficulties."},
-        {a:"physical", m:"身体の;物理的な", q:"Regular (____) exercise is good."},
-        {a:"mental", m:"精神の;知能の", q:"(____) health is as important as physical health."},
-        {a:"global", m:"地球全体の", q:"Climate change is a (____) problem."},
-        {a:"international", m:"国際的な", q:"She works for an (____) organization."},
-        {a:"local", m:"地元の;局所の", q:"We should buy (____) products."},
-        {a:"natural", m:"自然の;当然の", q:"The park is full of (____) beauty."},
-        {a:"necessary", m:"必要な", q:"It is (____) to wear a seat belt."},
-        {a:"possible", m:"可能な;あり得る", q:"Is it (____) to finish by tomorrow?"},
-        {a:"likely", m:"ありそうな", q:"It is (____) to rain this afternoon."},
-        {a:"various", m:"さまざまな", q:"They offer (____) types of services."},
-        {a:"different", m:"異なる", q:"My opinion is (____) from yours."},
-        {a:"similar", m:"似ている", q:"These two products are very (____)."},
-        {a:"simple", m:"単純な;質素な", q:"The answer is quite (____)."},
-        {a:"complex", m:"複雑な;複合的な", q:"The human brain is a (____) organ."},
-        {a:"modern", m:"現代の;最新の", q:"We live in a (____) world."},
-        {a:"ancient", m:"古代の;古くからの", q:"They are studying (____) civilizations."},
-        {a:"recent", m:"最近の", q:"Have you seen any (____) movies?"},
-        {a:"future", m:"未来の;将来の", q:"I'm worried about the (____)."},
-        {a:"save", m:"を節約する;を救う", q:"We should (____) water and electricity."},
-        {a:"happen", m:"(事が)起こる", q:"What (____) to you yesterday?"},
-        {a:"occur", m:"(事が)おこる", q:"The accident (____) at midnight."},
-        {a:"work", m:"機能する;働く", q:"This machine doesn't (____) properly."},
-        {a:"change", m:"を変える;変わる", q:"The weather will (____) tomorrow."},
-        {a:"run", m:"を経営する;走る", q:"He (____) a small restaurant in the city."},
-        {a:"turn", m:"の向きを変える;曲がる", q:"(____) left at the next corner."},
-        {a:"nonetheless", m:"それにもかかわらず", q:"It was raining; (____), we went out."}
+        {a:"believe", m:"(…ということ)を信じる,(…だ)と思う(that節);信じる\n▶believe in ~「~の存在を信じる」\n□belief 信じること ; 信念", q:"I believe that you will succeed."},
+        {a:"consider", m:"を(…だと)みなす(to be);をよく考える\n▶「…することをよく考える」はconsider doingで表す。\n□considertion 考慮\n□considerate 思いやりのある\n□considerable かなりの", q:"We consider the lion to be the king of beasts."},
+        {a:"expect", m:"を予期する,と思う;を期待する\n▶expectされるのは,よいものとは限らない。\n□expectation 見込み;期待", q:"He expects the problem to get worse."},
+        {a:"decide", m:"(を)決める\n□decision 決定:判決\n□decisive 決定的な:決断力のある", q:"I have decided to buy a new car."},
+        {a:"allow", m:"を許す \n▶allow for ~ ~ を考慮する \n□allowance　手当  小遣い;許容", q:"She did not allow her daughter to go to the party."},
+        {a:"remember", m:"(を)覚えている;(を)思い出す;(…すること)を 覚えておく(to do)\n remember doing「 …· したことを覚えている」 \nremembrance  思い出;記憶", q:"I remember visiting Kyoto when I was a university student."},
+        {a:"worry", m:"(~について)心配する(about);を心配させる; 〔受身形で)心配する\n心配", q:"You shouldn't worry about the future."},
+        {a:"concern", m:"に関係する;を心配させる\n ▶be concerned about~「~を心配している」 \n▶ as rar as I am concerned「私に関する限り」\n関心(事);心配", q:"The report concerns environmental issues."},
+        {a:"suggest", m:"を提案する;(…ということ)を暗示する(that節)\n□suggestion 提案;暗示", q:"I suggest that we should take a break."},
+        {a:"explain", m:"(を)説明する\n□explanation 説明", q:"Can you explain how this machine works?"},
+        {a:"describe", m:"の特徴を述べる;を(…と)言う(as)\n▶describe A as B「AをBだと言う[描写する]」\n□description 描写,説明", q:"He described the scene in great detail."},
+        {a:"improve", m:"を改善する;よくなる\n□improvement 向上,改善", q:"I want to improve my English skills."},
+        {a:"produce", m:"を生産する;を製造する;を産出する\n□product 製品\n□production 生産", q:"The factory produces 500 cars a month."},
+        {a:"create", m:"を創造する;を引き起こす\n□creation 創造\n□creative 創造的な", q:"She created a beautiful work of art."},
+        {a:"provide", m:"を供給する,提供する\n▶provide A with B「AにBを供給する」(=provide B for A)\n□provision 供給;用意", q:"The school provides students with lunches."},
+        {a:"increase", m:"増える;を増やす\n▶on the increase「増加して」\n増加", q:"The population of the city is increasing."},
+        {a:"grow", m:"成長する;になる;を栽培する\n活用: grow-grew-grown\n□growth 成長,発展", q:"I want to be a lawyer when I grow up."},
+        {a:"develop", m:"を開発する;を発達させる;発達する\n□development 発達,発展", q:"They are developing a new type of software."},
+        {a:"rise", m:"上がる,昇る;増す\n活用: rise-rose-risen\n▶「(太陽などが)昇る」はrise,「(手を)挙げる」はraise。", q:"Land prices have risen sharply."},
+        {a:"raise", m:"を上げる;(子供)を育てる;(資金など)を集める\n活用: raise-raised-raised", q:"The government raised the sales tax."},
+        {a:"follow", m:"(の)次に続く;に従う;(の)後を追う\n▶as follows 「次の通りで」", q:"Students must follow these guidelines."},
+        {a:"require", m:"を要求する;を必要とする\n□requirement 要求(されるもの)", q:"Translators require a good knowledge of English."},
+        {a:"fill", m:"を満たす;いっぱいになる\n▶be filled with~「~でいっぱいである」\n□full (…で)いっぱいの", q:"She filled my glass with water."},
+        {a:"support", m:"を支持する;を扶養する;を援助する\n支持;援助", q:"My family always supports my decisions."},
+        {a:"share", m:"を共同で使う;を分配する\n分担;役割;分け前", q:"I will share the room with my sister."},
+        {a:"face", m:"に直面する;(危険などが)の身に迫る;の方を向く\n顔;表面", q:"The world will face a food crisis."},
+        {a:"touch", m:"を感動させる;に触れる\n感触", q:"The entire audience was touched by her performance."},
+        {a:"store", m:"を蓄える;を保管する\n店", q:"Some animals store food for the long winter."},
+        {a:"pay", m:"(金)を支払う;(注意など)を払う;割に合う\n活用: pay-paid-paid\n▶pay attention to~「~に注意を払う」\n給料", q:"I paid 10,000 yen for the repairs."},
+        {a:"deal", m:"(deal withで)に対処する,扱う\n活用: deal-dealt-dealt\n取引 dealer(取扱)業者", q:"The doctor taught him how to deal with stress."},
+        {a:"save", m:"(時間·金銭など)を節約する;を救う; を蓄える;(労力など)を省く\n▶save the trouble「手間を省く」\n□saving(~s)貯金:節約", q:"We should save water and electricity."},
+        {a:"happen", m:"(事が)起こる;たまたま(…)する(to do)\n▶happen to ~~ に降りかかる,起こる", q:"What happened to you yesterday?"},
+        {a:"occur", m:"(事が)おこる;(考えが)(人の)心に浮かぶ(to)\n▶It occurred to me that …　「…という考えが浮かんだ」\n□occurrence 出来事", q:"The accident occurred at midnight."},
+        {a:"work", m:"機能する(=function)·ついく;働く\n▶work for a campany 「会社に勤務する」\n職;仕事,労働\nworking  働いている  仕事を持っている", q:"This machine doesn't work properly."},
+        {a:"change", m:"を(~に)変える(to/into) ;取り換え (for);変わる\n▶change for the better「よくなる,改善する」\n(~の)変化(in):交換:小銭,つり銭\n□changeable  変わりやすい", q:"The weather will change tomorrow."},
+        {a:"run", m:"を経営する;走る;作動する;立候補する\n▶run into~「~にぶつかる ;~ に偶然出会う」\n▶run out of~「~を使い果たす、~を切らす」\n走ること,競走;運行\n▶in the long run「長い目で見れば,結局は」", q:"He runs a small restaurant in the city."},
+        {a:"turn", m:"の向きを変える·を(~に)変える(into);(の方 を)向く(to);曲がる;(に)なる\n▶turn...into ~ 「…を~に変える」\n回転;順番", q:"Turn left at the next corner."},
+        {a:"return", m:"戻る,帰る;を返す\n▶in return for ~ 「~のお返しに」\n戻ること;返却", q:"It is time to return home."},
+        {a:"stand", m:"を我慢する(=endure/tolerate);立つ\n活用: stand-stood-stood\n▶cannot stand ~ 「~を我慢できない」\n(しばしば~s)観客席", q:"I couldn't stand the noise anymore."},
+        {a:"lie", m:"横たわる;うそをつく:(~に)ある(in)\n▶活用:「横たわる」lie-lay-lain\n「うそをつく」lie-lied-lied\nうそ", q:"He likes to lie on the sofa."},
+        {a:"brain", m:"脳:(しばしば~s)頭脳\n▶brain death「脳死」", q:"Alcohol can affect both your body and brain."},
+        {a:"mind", m:"心,精神(sbody肉体);知性\n▶make up one's mind (to do) 「(…しようと)決心する」\n(…すること)を嫌だと思う(doing)", q:"You should keep your parents' advice in mind."},
+        {a:"language", m:"言語:言葉(遣い)\n▶spoken language 話し言葉\n▶written language 書き言葉", q:"Her native language is Chinese."},
+        {a:"thought", m:"(…という)考え(of(doing)/that節);思考\n▶have second thought(s)考え直す\n□thoughtful思慮深い", q:"A new thought occurred to me."},
+        {a:"knowledge", m:"知識:(~について)知っていること(of)\n□acknowledge動を認める:に礼を言う", q:"Translators require a good knowledge of English."},
+        {a:"skill", m:"技術,技能;熟練\n□skilled 熟練した\n□skillful 巧みな:熟練した", q:"We have to develop communication skills."},
+        {a:"technology", m:"科学技術\n□technological 科学技術の\n□technique (専門)技術", q:"We live in the age of information technology."},
+        {a:"culture", m:"文化\n□cultural  文化の:教養の", q:"Japanese popular culture has many fans."},
+        {a:"experience", m:"経験:体験(●実験はexperiment)\nを経験する", q:"He experienced many difficulties in his life."},
+        {a:"result", m:"結果:成績\n▶as a result of ~「~の結果として」\n(~という)結果になる(in);(~から)起こる(from)", q:"The result of the exam was good."},
+        {a:"reason", m:"理由(for);道理;理性\n▶reason with ~~を説得する\n□reasonable 道理にかなった; (価格が)手ごろな", q:"Is there a reason why you are late?"},
+        {a:"cause", m:"原因;理由;大義名分\nを引き起こす;の原因となる\n▶cause A to do「Aに(…させ)る」", q:"What was the cause of the accident?"},
+        {a:"effect", m:"影響,効果(on);結果\n▶have an effect on ~ 「~に影響を及ぼす」\n□effective 効果がある", q:"The medicine had a strange effect."},
+        {a:"matter", m:"問題;事柄;物質\n重要である;問題になる\n▶no matter what ...「たとえ何が…であろうとも」", q:"It's only a matter of time."},
+        {a:"sense", m:"感覚;感じ;意味;良識\n▶in a sense 「ある意味では」\nを感知する", q:"Dogs have a sharp sense of smell."},
+        {a:"way", m:"方法(of/to do);経路;様子;様式\n▶in a way 「ある点[意味]では」\n▶on one's way to ~ 「~へ行く途中で」", q:"We earn money in different ways."},
+        {a:"term", m:"期間;学期;専門用語;間柄\n▶in terms of ~ 「~の観点から(言えば)」\n▶be on good terms with ~ 「~と仲が良い」", q:"The President serves a four-year term."},
+        {a:"situation", m:"状況;立場;位置\n□situate 動 を(ある場所に)置く", q:"We are in a very difficult situation."},
+        {a:"condition", m:"状況;(周囲の)環境;状態;条件\n▶on condition that …「…という条件で」", q:"The car is in good condition."},
+        {a:"position", m:"位置;場所;立場;地位", q:"I showed her our position on the map."},
+        {a:"environment", m:"環境;自然環境;周囲の状況\n□environmental  環境の", q:"We must protect the environment."},
+        {a:"nature", m:"自然;性質;本質\n□natural 自然の;当然の", q:"The park is full of natural beauty."},
+        {a:"research", m:"研究,調査(into/on)\nを研究する", q:"They do research into the causes of cancer."},
+        {a:"rule", m:"規則;慣習;支配\nを支配する;を思い通りにする\n▶as a rule 「概して,普通は」", q:"Despite the fines, they continued to break the rules."},
+        {a:"interest", m:"興味(in);利害(関係);利子;利益\nに興味を持たせる", q:"I have no interest in mathematics."},
+        {a:"value", m:"価値(of);価値観(通例~s);価格\nを評価する;を重んじる\n□valuable 価値のある", q:"She puts a high value on friendship."},
+        {a:"view", m:"意見(on/about);見方;眺め\n▶with a view to doing 「…する目的で」\nを眺める;を考察する", q:"I share her views on nuclear power plants."},
+        {a:"sound", m:"音;音響\nに聞こえる;を鳴らす\n健全な;ぐっすりと(眠る)", q:"I heard a strange sound."},
+        {a:"form", m:"形,形態;用紙;種類\nを形づくる;を結成する", q:"Water can take the form of ice."},
+        {a:"case", m:"場合;事例;実情;事件;箱\n▶in any case 「とにかく,いずれにせよ」", q:"In many cases, the symptoms are mild."},
+        {a:"role", m:"役割;役\n▶play a role in ~ 「~で役割を果たす」", q:"Parents play an important role in education."},
+        {a:"age", m:"年齢;時代\n老ける:年をとる\n▶at the age of ~ 「~歳の時に」", q:"The average age of the students is twenty."},
+        {a:"care", m:"世話;注意;介護;心配\n世話をする;気にする;好む\n▶take care of ~「~の世話をする」", q:"The baby needs constant care."},
+        {a:"danger", m:"危険;危険なもの\n□dangerous 危険な", q:"The animal is in danger of extinction."},
+        {a:"pollution", m:"汚染;公害\n□pollute を汚染する", q:"Air pollution is a serious problem."},
+        {a:"society", m:"社会;協会;団体;交際\n□social 社会の", q:"We live in a modern society."},
+        {a:"community", m:"地域社会,共同体", q:"The community worked together to clean the park."},
+        {a:"government", m:"政府;政治\n□govern を支配する;を統治する", q:"The government decided to raise taxes."},
+        {a:"policy", m:"政策,方針;保険証券", q:"The company has a strict policy."},
+        {a:"economy", m:"経済;節約\n□economic 経済の\n□economical 経済的な", q:"The country's economy is growing."},
+        {a:"industry", m:"産業;工業;勤勉\n□industrial 産業の\n□industrious 勤勉な", q:"The car industry is very important."},
+        {a:"issue", m:"問題(点);発行(物);第…号\nを発行する;を出す", q:"This is a very important issue."},
+        {a:"standard", m:"水準,基準;旗\n標準の", q:"The living standard has improved."},
+        {a:"quality", m:"質(⇔quantity量);特性;質の高い", q:"The quality of the product is high."},
+        {a:"degree", m:"程度;度;学位\n▶to a certain degree「ある程度まで」", q:"He has a degree in economics."},
+        {a:"effort", m:"努力\n▶make an effort to do「…しようと努力する」", q:"You should make an effort to be on time."},
+        {a:"purpose", m:"目的,意図\n▶on purpose「わざと」", q:"What is the purpose of your visit?"},
+        {a:"opinion", m:"意見;持論", q:"In my opinion, this plan is not good."},
+        {a:"fact", m:"事実;実態\n▶in fact「実際は」", q:"In fact, she didn't know anything."},
+        {a:"ability", m:"能力;才能\n▶the ability to do「…する能力」", q:"She has the ability to play the piano."},
+        {a:"individual", m:"個人;個体\n個々の;個人の", q:"We should respect individual differences."},
+        {a:"average", m:"平均;標準\n平均の;普通の", q:"The average age of the students is twenty."},
+        {a:"public", m:"公衆の;公立の;公開の\n▶in public「人前で」\n一般の人々;公衆", q:"Smoking is prohibited in public places."},
+        {a:"private", m:"個人の;内密の;民間の", q:"I want to keep my private life separate."},
+        {a:"social", m:"社会の;社交的な\n□society 社会", q:"They have active social lives."},
+        {a:"political", m:"政治の;政治的な\n□politics 政治", q:"He is interested in political issues."},
+        {a:"economic", m:"経済の;経済的な\n□economy 経済", q:"The country is facing economic difficulties."},
+        {a:"physical", m:"身体の;物理的な;物質の\n□physics 物理学", q:"Regular physical exercise is good."},
+        {a:"mental", m:"精神の;知能の", q:"Mental health is as important as physical health."},
+        {a:"global", m:"地球全体の;世界的な", q:"Climate change is a global problem."}
     ];
 
     let currentSet = [], currentIdx = 0, score = 0, sessionRes = [];
 
+    function initDictionary() {
+        const listEl = document.getElementById('dictionary-list');
+        listEl.innerHTML = masterData.map((item, idx) => `
+            <div style="padding:15px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; cursor:pointer;" onclick="showWordDetail(${idx})">
+                <span style="font-weight:bold; color:var(--primary)">${idx + 1}. ${item.a}</span>
+                <span style="color:#ccc">＞</span>
+            </div>
+        `).join('');
+    }
+
+    function showWordDetail(idx) {
+        const item = masterData[idx];
+        document.getElementById('detail-content').innerHTML = `
+            <div class="detail-word">${item.a}</div>
+            <div style="color:#888; font-weight:bold;">意味・解説</div>
+            <div class="detail-meaning">${item.m}</div>
+            <div style="color:#888; font-weight:bold; margin-top:15px;">例文</div>
+            <div class="detail-example">${item.q}</div>
+        `;
+        changePage('word-detail');
+    }
+
     function toggleMenu() {
-        const s = document.getElementById('sidebar');
-        const o = document.getElementById('sidebar-overlay');
+        const s = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay');
         const open = s.classList.toggle('open');
         o.style.display = open ? 'block' : 'none';
     }
@@ -226,13 +238,10 @@
     function changePage(p) {
         document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
         document.getElementById('page-'+p).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-        document.getElementById('nav-'+p).classList.add('active');
-
-        if(window.innerWidth < 768) {
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('sidebar-overlay').style.display='none';
-        }
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        const navId = (p==='word-detail'||p==='pdf-view') ? (p==='word-detail'?'nav-dictionary':'nav-history') : 'nav-'+p;
+        if(document.getElementById(navId)) document.getElementById(navId).classList.add('active');
+        if(window.innerWidth < 768) { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').style.display='none'; }
         if(p === 'history') updateHistoryList();
         if(p === 'quiz') resetQuizMenu();
     }
@@ -255,8 +264,8 @@
 
     function loadQ() {
         const qData = currentSet[currentIdx];
-        document.getElementById('q-progress').innerText = `${currentIdx+1} / ${currentSet.length}`;
-        document.getElementById('q-text').innerText = qData.q;
+        document.getElementById('q-progress').innerText = `${currentIdx+1} / 10`;
+        document.getElementById('q-text').innerText = qData.q.replace(new RegExp(qData.a, 'gi'), ' ( ____ ) ');
         const container = document.getElementById('q-options');
         container.innerHTML = '';
         let opts = [qData.a];
@@ -266,7 +275,8 @@
         }
         opts.sort(()=>Math.random()-0.5).forEach(o => {
             const b = document.createElement('button');
-            b.className = 'option-btn'; b.innerText = o;
+            b.className = 'btn'; b.style.background='white'; b.style.color='#333'; b.style.border='2px solid #eee'; b.style.textAlign='left';
+            b.innerText = o;
             b.onclick = () => checkAnswer(o, qData);
             container.appendChild(b);
         });
@@ -276,75 +286,70 @@
         const isOk = (userAns === qData.a);
         if(isOk) score++;
         sessionRes.push({q:qData.q, a:qData.a, am:qData.m, u:userAns, ok:isOk});
-
+        
         document.getElementById('quiz-game').style.display = 'none';
         const fb = document.getElementById('quiz-feedback');
         fb.style.display = 'block';
-        const st = document.getElementById('fb-status');
-        st.innerText = isOk ? "正解！" : "不正解...";
-        st.style.color = isOk ? "var(--success)" : "var(--error)";
+        fb.style.backgroundColor = isOk ? "var(--success-bg)" : "var(--error-bg)";
         fb.style.borderColor = isOk ? "var(--success)" : "var(--error)";
-        document.getElementById('fb-content').innerHTML = `
-            <div><b>正解: ${qData.a}</b><br><small>${qData.m}</small></div>
-            ${!isOk ? `<div style="margin-top:10px; color:#666; border-top:1px dashed #ccc; padding-top:10px;">あなたの回答: ${userAns}</div>` : ''}
-        `;
+        
+        document.getElementById('fb-status').innerText = isOk ? "正解！" : "不正解...";
+        document.getElementById('fb-status').style.color = isOk ? "var(--success)" : "var(--error)";
+        document.getElementById('fb-content').innerHTML = `<b>正解: ${qData.a}</b><br><small>${qData.m.split('\n')[0]}</small>`;
     }
 
     function nextQuestion() {
         currentIdx++;
         document.getElementById('quiz-feedback').style.display = 'none';
-        if(currentIdx < currentSet.length) {
+        if(currentIdx < 10) {
             document.getElementById('quiz-game').style.display = 'block';
             loadQ();
         } else {
-            finishQuiz();
+            document.getElementById('quiz-result').style.display='block';
+            document.getElementById('res-score').innerText = `${score} / 10`;
+            saveHistory();
         }
     }
 
-    function finishQuiz() {
-        document.getElementById('quiz-result').style.display='block';
-        document.getElementById('res-score').innerText = `${score} / ${currentSet.length}`;
-        
-        // 履歴に保存
-        let hist = JSON.parse(localStorage.getItem('study_app_history') || '[]');
-        hist.unshift({
-            date: new Date().toLocaleString(),
-            score: `${score}/${currentSet.length}`,
-            details: sessionRes
-        });
-        localStorage.setItem('study_app_history', JSON.stringify(hist.slice(0, 30))); // 最大30件保存
+    function saveHistory() {
+        let hist = JSON.parse(localStorage.getItem('word_study_history_v8') || '[]');
+        hist.unshift({ date: new Date().toLocaleString(), score: `${score}/10`, details: sessionRes });
+        localStorage.setItem('word_study_history_v8', JSON.stringify(hist.slice(0, 20)));
     }
 
     function updateHistoryList() {
         const container = document.getElementById('history-container');
-        const hist = JSON.parse(localStorage.getItem('study_app_history') || '[]');
+        const hist = JSON.parse(localStorage.getItem('word_study_history_v8') || '[]');
         if(hist.length === 0) { container.innerHTML = "履歴がありません。"; return; }
-        
-        let html = "";
-        hist.forEach((h, i) => {
-            html += `<div class="history-item">
-                <div style="flex:1"><b>${h.date}</b><br>スコア: ${h.score}</div>
-                <button class="btn-sm" onclick="viewPDF(${i})">詳細を見る</button>
-            </div>`;
-        });
-        container.innerHTML = html;
+        container.innerHTML = hist.map((h, i) => `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:15px; margin-bottom:10px; border-radius:10px;">
+                <div><b>${h.date}</b><br>点数: ${h.score}</div>
+                <button class="btn" style="width:auto; margin:0; padding:8px 15px;" onclick="viewHistoryDetail(${i})">詳細</button>
+            </div>
+        `).join('');
     }
 
-    function viewPDF(index) {
-        const hist = JSON.parse(localStorage.getItem('study_app_history') || '[]');
+    function viewHistoryDetail(index) {
+        const hist = JSON.parse(localStorage.getItem('word_study_history_v8') || '[]');
         const data = hist[index];
-        document.getElementById('pdf-header').innerHTML = `<h2 style="text-align:center;">テスト結果詳細</h2><p style="text-align:center;">${data.date} / スコア: ${data.score}</p><hr>`;
-        let body = "";
-        data.details.forEach((d, i) => {
-            body += `<div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
-                <b>Q${i+1}: ${d.q}</b><br>
-                ${d.ok ? '<span style="color:green">○ 正解</span>' : '<span style="color:red">× 不正解</span>'} (正解: ${d.a} / あなた: ${d.u})<br>
-                <small style="color:#666;">意味: ${d.am}</small>
-            </div>`;
-        });
-        document.getElementById('pdf-body').innerHTML = body;
+        document.getElementById('pdf-header').innerHTML = `<h2 style="text-align:center;">学習結果詳細</h2><p style="text-align:center;">${data.date} | スコア: ${data.score}</p><hr>`;
+        document.getElementById('pdf-body').innerHTML = data.details.map((d, i) => `
+            <div class="res-item ${d.ok ? 'correct' : 'wrong'}">
+                <span class="res-label">${d.ok ? '正解' : '不正解'}</span>
+                <div style="margin-top:5px;"><b>Q${i+1}: ${d.q}</b></div>
+                <div style="margin-top:8px; font-size:1rem;">
+                    正解の単語: <b style="color:var(--success)">${d.a}</b><br>
+                    あなたの回答: <b style="color:${d.ok ? 'var(--success)' : 'var(--error)'}">${d.u}</b>
+                </div>
+                <div style="margin-top:10px; font-size:0.9rem; color:#444; border-top:1px dashed #bbb; padding-top:8px;">
+                    意味: ${d.am.replace(/\n/g, '<br>')}
+                </div>
+            </div>
+        `).join('');
         changePage('pdf-view');
     }
+
+    initDictionary();
 </script>
 </body>
 </html>
