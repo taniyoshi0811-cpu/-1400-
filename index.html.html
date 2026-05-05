@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Target 100 決定版（完全版）</title>
+    <title>Target 100 決定版</title>
     <style>
         :root { 
             --primary: #3498db; --sidebar-bg: #2c3e50; --bg: #f4f7f6; --white: #ffffff; 
@@ -12,7 +12,7 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: #333; overflow: hidden; }
 
-        /* レイアウト */
+        /* レイアウト設定 */
         .sidebar { width: 240px; background: var(--sidebar-bg); color: white; display: flex; flex-direction: column; padding-top: 20px; flex-shrink: 0; position: absolute; height: 100%; z-index: 2000; transition: transform 0.3s ease; transform: translateX(-100%); }
         .sidebar.open { transform: translateX(0); }
         .nav-item { padding: 18px 25px; cursor: pointer; color: #bdc3c7; border-left: 4px solid transparent; }
@@ -30,10 +30,10 @@
         .list-item:active { background: #eef7ff; }
         .meaning-text { white-space: pre-wrap; line-height: 1.5; color: #444; }
 
-        /* カレンダー */
+        /* カレンダー設定 */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 15px; }
         .calendar-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: bold; border: 1px solid #eee; background: white; font-size: 0.8rem; }
-        .has-study { background-color: var(--primary) !important; color: white; cursor: pointer; transition: transform 0.1s; }
+        .has-study { background-color: var(--primary) !important; color: white; cursor: pointer; }
         .has-study:active { transform: scale(0.9); }
 
         #sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1900; }
@@ -101,13 +101,14 @@
         </div>
 
         <div id="page-history" class="page">
-            <h1>学習履歴</h1>
+            <h1 id="history-title">学習履歴</h1>
             <div id="history-container"></div>
+            <div id="history-footer"></div>
         </div>
 
         <div id="page-history-detail" class="page">
             <div class="card"><div id="his-detail-header"></div><div id="his-detail-body"></div></div>
-            <button class="btn" onclick="historyBack()" style="background:#888;">戻る</button>
+            <button class="btn" onclick="backFromHistoryDetail()" style="background:#888;">履歴一覧に戻る</button>
         </div>
 
         <div id="page-calendar" class="page">
@@ -115,16 +116,17 @@
             <div class="card">
                 <div id="calendar-month" style="text-align:center; font-weight:bold; margin-bottom:10px;"></div>
                 <div class="calendar-grid" id="calendar-body"></div>
-                <p style="font-size:0.8rem; color:#888; margin-top:10px; text-align:center;">※学習した日をタップするとその日の履歴を表示します</p>
+                <p style="font-size:0.8rem; color:#888; margin-top:10px; text-align:center;">※色がついた日をタップすると、その日の履歴のみを表示します</p>
             </div>
         </div>
     </div>
 
 <script>
+    // --- データ・定数 ---
     const STORAGE_KEYS = ['target100_everlasting_history', 'target100_v3_data', 'target100_history'];
     const MAIN_KEY = STORAGE_KEYS[0]; 
     let lastViewedWordId = null;
-    let historySource = 'history'; // 'history' または 'calendar'
+    let isFilteredHistory = false; // カレンダーから飛んだかどうかのフラグ
 
     const masterData = [
         {a:"believe", m:"(…ということ)を信じる,(…だ)と思う(that節);信じる\n▶believe in ~「~の存在を信じる」\n□belief 信じること ; 信念", q:"I believe that you will succeed."},
@@ -253,7 +255,7 @@
         
         if(p === 'home') updateHomeStats();
         if(p === 'dictionary') initDictionary();
-        if(p === 'history') { historySource = 'history'; renderHistoryList(); }
+        if(p === 'history' && !isFilteredHistory) renderHistoryList(); // 通常の履歴
         if(p === 'calendar') renderCalendar();
         if(p === 'quiz') goBackToMenu();
 
@@ -362,39 +364,40 @@
         }
     }
 
-    // --- 履歴・カレンダーロジック ---
-    function renderHistoryList() {
+    // --- 履歴表示ロジック ---
+    function renderHistoryList(filterDate = null) {
         const container = document.getElementById('history-container');
-        const hist = getHistory();
+        const titleEl = document.getElementById('history-title');
+        const footerEl = document.getElementById('history-footer');
+        let hist = getHistory();
+        
+        isFilteredHistory = !!filterDate;
+        
+        if (filterDate) {
+            // カレンダーからのフィルタリング
+            hist = hist.filter(h => h.date.startsWith(filterDate));
+            titleEl.innerText = `${filterDate.trim()} の履歴`;
+            footerEl.innerHTML = `<button class="btn" onclick="clearHistoryFilter()" style="background:#888;">カレンダーに戻る</button>`;
+        } else {
+            // 全履歴
+            titleEl.innerText = `学習履歴`;
+            footerEl.innerHTML = ``;
+        }
+
         if(hist.length === 0) {
             container.innerHTML = '<div class="card">履歴はありません</div>'; return;
         }
-        container.innerHTML = hist.map((r, idx) => `
-            <div class="list-item" onclick="viewHistoryDetail(${idx})">
-                <div><small>${r.date}</small><br><b>スコア: ${r.score}</b></div>
-                <span>＞</span>
-            </div>
-        `).join('');
-    }
 
-    // カレンダーで日にちを選んだときに「その日の履歴一覧」を出す
-    function viewDayHistory(y, m, d) {
-        const hist = getHistory();
-        const datePrefix = `${y}/${m+1}/${d} `;
-        const dayHistories = hist.map((h, i) => ({...h, originalIdx: i})).filter(h => h.date.startsWith(datePrefix));
-
-        if(dayHistories.length === 0) return;
-
-        historySource = 'calendar';
-        const container = document.getElementById('history-container');
-        container.innerHTML = `<h3>${y}/${m+1}/${d} の履歴</h3>` + dayHistories.map(r => `
-            <div class="list-item" onclick="viewHistoryDetail(${r.originalIdx})">
-                <div><small>${r.date}</small><br><b>スコア: ${r.score}</b></div>
-                <span>＞</span>
-            </div>
-        `).join('') + `<button class="btn" onclick="changePage('calendar')" style="background:#888; margin-top:20px;">カレンダーに戻る</button>`;
-        
-        changePage('history');
+        container.innerHTML = hist.map((r, idx) => {
+            // 元の配列のインデックスを探す（詳細表示のため）
+            const originalIdx = getHistory().findIndex(h => h.date === r.date);
+            return `
+                <div class="list-item" onclick="viewHistoryDetail(${originalIdx})">
+                    <div><small>${r.date}</small><br><b>スコア: ${r.score}</b></div>
+                    <span>＞</span>
+                </div>
+            `;
+        }).join('');
     }
 
     function viewHistoryDetail(idx) {
@@ -410,16 +413,16 @@
         changePage('history-detail');
     }
 
-    function historyBack() {
-        if(historySource === 'calendar') {
-            // カレンダーからの場合は履歴リスト（その日の分）に戻る
-            changePage('history');
-        } else {
-            // 通常の履歴からの場合は全履歴に戻る
-            changePage('history');
-        }
+    function backFromHistoryDetail() {
+        changePage('history');
     }
 
+    function clearHistoryFilter() {
+        isFilteredHistory = false;
+        changePage('calendar');
+    }
+
+    // --- カレンダー描画 ---
     function renderCalendar() {
         const body = document.getElementById('calendar-body'); 
         body.innerHTML = '';
@@ -431,6 +434,7 @@
         const firstDay = new Date(y, m, 1).getDay();
         const daysInMonth = new Date(y, m + 1, 0).getDate();
 
+        // 空白
         for (let i = 0; i < firstDay; i++) body.appendChild(document.createElement('div'));
 
         for (let d = 1; d <= daysInMonth; d++) {
@@ -443,7 +447,10 @@
 
             if (hasData) {
                 div.classList.add('has-study');
-                div.onclick = () => viewDayHistory(y, m, d);
+                div.onclick = () => {
+                    renderHistoryList(datePrefix);
+                    changePage('history');
+                };
             }
             body.appendChild(div);
         }
