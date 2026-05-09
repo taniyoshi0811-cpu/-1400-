@@ -3,16 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Target 100 決定版</title>
+    <title>Target 100 究極版</title>
     <style>
         :root { 
             --primary: #3498db; --sidebar-bg: #2c3e50; --bg: #f4f7f6; --white: #ffffff; 
-            --success: #28a745; --success-bg: #eaffed; --error: #dc3545; --error-bg: #fff0f0; --accent: #e67e22; 
+            --success: #28a745; --error: #dc3545;
+            --color-high: #ff4d4d;    /* 赤: 90%以上 */
+            --color-mid: #3498db;     /* 青: 50-89% */
+            --color-low: #f1c40f;     /* 黄: 11-49% */
+            --color-bad: #9b59b6;     /* 紫: 10%以下 */
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: #333; overflow: hidden; }
 
-        /* レイアウト設定 */
+        /* サイドバー */
         .sidebar { width: 240px; background: var(--sidebar-bg); color: white; display: flex; flex-direction: column; padding-top: 20px; flex-shrink: 0; position: absolute; height: 100%; z-index: 2000; transition: transform 0.3s ease; transform: translateX(-100%); }
         .sidebar.open { transform: translateX(0); }
         .nav-item { padding: 18px 25px; cursor: pointer; color: #bdc3c7; border-left: 4px solid transparent; }
@@ -23,18 +27,23 @@
         .page { display: none; width: 100%; max-width: 600px; }
         .page.active { display: block; }
 
+        /* コンポーネント */
         .card { background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
         .btn { display: block; width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 10px; background: var(--primary); color: white; font-size: 1rem; font-weight: bold; cursor: pointer; text-align: center; }
         
-        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; background: white; border-radius: 10px; margin-bottom: 8px; transition: background 0.2s; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; background: white; border-radius: 10px; margin-bottom: 8px; }
         .list-item:active { background: #eef7ff; }
-        .meaning-text { white-space: pre-wrap; line-height: 1.5; color: #444; }
+        .meaning-text { white-space: pre-wrap; line-height: 1.6; color: #444; font-size: 0.95rem; }
 
-        /* カレンダー設定 */
+        .summary-card { background: var(--primary); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3); }
+
+        /* カレンダー */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 15px; }
         .calendar-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: bold; border: 1px solid #eee; background: white; font-size: 0.8rem; }
-        .has-study { background-color: var(--primary) !important; color: white; cursor: pointer; }
-        .has-study:active { transform: scale(0.9); }
+        .day-high { background-color: var(--color-high) !important; color: white; border: none; }
+        .day-mid  { background-color: var(--color-mid) !important; color: white; border: none; }
+        .day-low  { background-color: var(--color-low) !important; color: white; border: none; }
+        .day-bad  { background-color: var(--color-bad) !important; color: white; border: none; }
 
         #sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1900; }
         @media (min-width: 768px) {
@@ -71,19 +80,27 @@
         </div>
 
         <div id="page-word-detail" class="page">
-            <div class="card"><div id="detail-content"></div><button class="btn" onclick="backToDictionary()" style="background:#888;">単語帳に戻る</button></div>
+            <div class="card">
+                <div id="detail-content"></div>
+                <button class="btn" onclick="backToDictionary()" style="background:#888; margin-top:20px;">単語帳に戻る</button>
+            </div>
         </div>
 
         <div id="page-quiz" class="page">
             <div id="quiz-menu" class="card">
-                <h1>テスト範囲を選択</h1>
+                <h1>テスト範囲</h1>
+                <button class="btn" onclick="showRangeSubMenu()">1 - 100 を選択する</button>
+            </div>
+            <div id="quiz-sub-menu" class="card" style="display:none;">
+                <h1>詳細範囲を選択</h1>
                 <button class="btn" onclick="startQuiz(1, 32)">1 - 32</button>
                 <button class="btn" onclick="startQuiz(33, 68)">33 - 68</button>
                 <button class="btn" onclick="startQuiz(69, 100)">69 - 100</button>
                 <button class="btn" onclick="startQuiz(1, 100)" style="background:var(--sidebar-bg)">全範囲 (1-100)</button>
+                <button class="btn" onclick="goBackToMenu()" style="background:#888;">戻る</button>
             </div>
             <div id="quiz-game" class="card" style="display:none;">
-                <div id="q-progress" style="color:#888; font-size:0.9rem;"></div>
+                <div id="q-progress" style="color:#888; font-size:0.9rem; margin-bottom:10px;"></div>
                 <div id="q-text" style="font-size:1.3rem; margin:20px 0; font-weight:bold; line-height:1.4;"></div>
                 <div id="q-options"></div>
             </div>
@@ -96,18 +113,21 @@
                 <h2>結果発表</h2>
                 <div id="res-score" style="font-size:3rem; color:var(--primary); font-weight:bold; margin:20px;"></div>
                 <button class="btn" onclick="goBackToMenu()">範囲選択に戻る</button>
-                <button class="btn" onclick="resetQuiz()" style="background:#888;">同じ範囲でもう一度</button>
             </div>
         </div>
 
         <div id="page-history" class="page">
             <h1 id="history-title">学習履歴</h1>
+            <div id="day-summary-area"></div>
             <div id="history-container"></div>
             <div id="history-footer"></div>
         </div>
 
         <div id="page-history-detail" class="page">
-            <div class="card"><div id="his-detail-header"></div><div id="his-detail-body"></div></div>
+            <div class="card">
+                <div id="his-detail-header"></div>
+                <div id="his-detail-body"></div>
+            </div>
             <button class="btn" onclick="backFromHistoryDetail()" style="background:#888;">履歴一覧に戻る</button>
         </div>
 
@@ -116,17 +136,21 @@
             <div class="card">
                 <div id="calendar-month" style="text-align:center; font-weight:bold; margin-bottom:10px;"></div>
                 <div class="calendar-grid" id="calendar-body"></div>
-                <p style="font-size:0.8rem; color:#888; margin-top:10px; text-align:center;">※色がついた日をタップすると、その日の履歴のみを表示します</p>
+                <div style="margin-top:20px; font-size:0.75rem; display:flex; justify-content:space-around; border-top:1px solid #eee; padding-top:10px;">
+                    <span><b style="color:var(--color-high)">■</b> 90%+</span>
+                    <span><b style="color:var(--color-mid)">■</b> 50-89%</span>
+                    <span><b style="color:var(--color-low)">■</b> 11-49%</span>
+                    <span><b style="color:var(--color-bad)">■</b> 10%-</span>
+                </div>
             </div>
         </div>
     </div>
 
 <script>
-    // --- データ・定数 ---
-    const STORAGE_KEYS = ['target100_everlasting_history', 'target100_v3_data', 'target100_history'];
-    const MAIN_KEY = STORAGE_KEYS[0]; 
+    // --- マスターデータ (完全版100語) ---
+    const STORAGE_KEY = 'target100_everlasting_history';
     let lastViewedWordId = null;
-    let isFilteredHistory = false; // カレンダーから飛んだかどうかのフラグ
+    let isFilteredHistory = false;
 
     const masterData = [
         {a:"believe", m:"(…ということ)を信じる,(…だ)と思う(that節);信じる\n▶believe in ~「~の存在を信じる」\n□belief 信じること ; 信念", q:"I believe that you will succeed."},
@@ -223,7 +247,7 @@
         {a:"average", m:"平均;標準\n平均の;普通の", q:"The average age of the students is twenty."},
         {a:"public", m:"公衆の;公立の;公開の\n▶in public「人前で」\n一般の人々;公衆", q:"Smoking is prohibited in public places."},
         {a:"private", m:"個人の;内密の;民間の", q:"I want to keep my private life separate."},
-        {a:"social", m:"社会の;社交的な\n□society 社会", q:"They have active social lives."},
+        {a:"social", m:"社会의;社交的な\n□society 社会", q:"They have active social lives."},
         {a:"political", m:"政治の;政治的な\n□politics 政治", q:"He is interested in political issues."},
         {a:"economic", m:"経済の;経済的な\n□economy 経済", q:"The country is facing economic difficulties."},
         {a:"physical", m:"身体の;物理的な;物質の\n□physics 物理学", q:"Regular physical exercise is good."},
@@ -231,22 +255,8 @@
         {a:"global", m:"地球全体の;世界的な", q:"Climate change is a global problem."}
     ];
 
-    // --- 履歴管理 ---
-    function getHistory() {
-        for (let key of STORAGE_KEYS) {
-            let data = localStorage.getItem(key);
-            if (data) return JSON.parse(data);
-        }
-        return [];
-    }
+    // --- ロジック ---
 
-    function saveHistory(newEntry) {
-        let hist = getHistory();
-        hist.unshift(newEntry);
-        localStorage.setItem(MAIN_KEY, JSON.stringify(hist.slice(0, 100)));
-    }
-
-    // --- ページ切り替え ---
     function changePage(p) {
         document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
         document.getElementById('page-'+p).classList.add('active');
@@ -255,75 +265,37 @@
         
         if(p === 'home') updateHomeStats();
         if(p === 'dictionary') initDictionary();
-        if(p === 'history' && !isFilteredHistory) renderHistoryList(); // 通常の履歴
+        if(p === 'history' && !isFilteredHistory) renderHistoryList();
         if(p === 'calendar') renderCalendar();
-        if(p === 'quiz') goBackToMenu();
-
         if(window.innerWidth < 768) toggleMenu(false);
     }
 
-    function updateHomeStats() {
-        const hist = getHistory();
-        document.getElementById('home-stats').innerHTML = `<p>累計学習回数: <b>${hist.length} 回</b></p><p>収録単語数: <b>${masterData.length} 語</b></p>`;
-    }
-
-    // --- 単語帳 ---
-    function initDictionary() {
-        const listEl = document.getElementById('dictionary-list');
-        if(listEl.innerHTML !== "") return;
-        listEl.innerHTML = masterData.map((item, idx) => `
-            <div class="list-item" id="word-item-${idx}" onclick="showWordDetail(${idx})">
-                <span style="font-weight:bold; color:var(--primary)">${idx + 1}. ${item.a}</span>
-                <span style="color:#ccc">＞</span>
-            </div>
-        `).join('');
-    }
-
-    function showWordDetail(idx) {
-        lastViewedWordId = idx;
-        const item = masterData[idx];
-        document.getElementById('detail-content').innerHTML = `
-            <div style="font-size:1.8rem; font-weight:bold; color:var(--primary);">${item.a}</div>
-            <div class="card" style="margin:15px 0; background:#f9f9f9; box-shadow:none; border:1px solid #eee;">
-                <div class="meaning-text">${item.m}</div>
-            </div>
-            <div style="color:#666;"><b>例文:</b><br><i>${item.q}</i></div>
-        `;
-        changePage('word-detail');
-    }
-
-    function backToDictionary() {
-        changePage('dictionary');
-        if (lastViewedWordId !== null) {
-            const targetEl = document.getElementById(`word-item-${lastViewedWordId}`);
-            if (targetEl) {
-                setTimeout(() => {
-                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    targetEl.style.background = "#eef7ff";
-                    setTimeout(() => targetEl.style.background = "white", 1000);
-                }, 50);
-            }
-        }
-    }
-
-    // --- クイズ ---
+    // クイズ管理
     let currentSet = [], currentIdx = 0, score = 0, sessionRes = [], lastRange = [1, 100];
+
+    function showRangeSubMenu() {
+        document.getElementById('quiz-menu').style.display = 'none';
+        document.getElementById('quiz-sub-menu').style.display = 'block';
+    }
+
     function goBackToMenu() {
         document.getElementById('quiz-menu').style.display = 'block';
+        document.getElementById('quiz-sub-menu').style.display = 'none';
         document.getElementById('quiz-game').style.display = 'none';
         document.getElementById('quiz-feedback').style.display = 'none';
         document.getElementById('quiz-result').style.display = 'none';
     }
+
     function startQuiz(min, max) {
         lastRange = [min, max];
         const pool = masterData.slice(min-1, max);
         currentSet = [...pool].sort(()=>Math.random()-0.5).slice(0, 10);
         currentIdx = 0; score = 0; sessionRes = [];
-        document.getElementById('quiz-menu').style.display='none';
-        document.getElementById('quiz-game').style.display='block';
+        document.getElementById('quiz-sub-menu').style.display = 'none';
+        document.getElementById('quiz-game').style.display = 'block';
         loadQ();
     }
-    function resetQuiz() { startQuiz(lastRange[0], lastRange[1]); }
+
     function loadQ() {
         const qData = currentSet[currentIdx];
         document.getElementById('q-progress').innerText = `問題 ${currentIdx+1} / 10`;
@@ -339,6 +311,7 @@
             b.innerText = o; b.onclick = () => checkAnswer(o, qData); container.appendChild(b);
         });
     }
+
     function checkAnswer(userAns, qData) {
         const isOk = (userAns === qData.a);
         if(isOk) score++;
@@ -347,8 +320,9 @@
         const fb = document.getElementById('quiz-feedback'); fb.style.display = 'block';
         document.getElementById('fb-status').innerText = isOk ? "正解！" : "不正解...";
         document.getElementById('fb-status').style.color = isOk ? "var(--success)" : "var(--error)";
-        document.getElementById('fb-content').innerHTML = `正解: <b>${qData.a}</b><br><div class="meaning-text" style="font-size:0.9rem;">${qData.m}</div>`;
+        document.getElementById('fb-content').innerHTML = `正解: <b>${qData.a}</b><br><div class="meaning-text" style="font-size:0.9rem; margin-top:10px;">${qData.m}</div>`;
     }
+
     function nextQuestion() {
         currentIdx++;
         document.getElementById('quiz-feedback').style.display = 'none';
@@ -358,111 +332,156 @@
         } else {
             document.getElementById('quiz-result').style.display='block';
             document.getElementById('res-score').innerText = `${score} / 10`;
-            const now = new Date();
-            const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-            saveHistory({ date: dateStr, score: `${score}/10`, details: sessionRes });
+            saveHistoryToStore(score, sessionRes);
         }
     }
 
-    // --- 履歴表示ロジック ---
+    // 履歴・カレンダー管理
+    function getHistory() {
+        const d = localStorage.getItem(STORAGE_KEY);
+        return d ? JSON.parse(d) : [];
+    }
+
+    function saveHistoryToStore(score, details) {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        const hist = getHistory();
+        hist.unshift({ date: dateStr, score: `${score}/10`, details: details });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(hist.slice(0, 100)));
+    }
+
     function renderHistoryList(filterDate = null) {
         const container = document.getElementById('history-container');
+        const summaryArea = document.getElementById('day-summary-area');
         const titleEl = document.getElementById('history-title');
         const footerEl = document.getElementById('history-footer');
-        let hist = getHistory();
+        const hist = getHistory();
         
         isFilteredHistory = !!filterDate;
-        
+        summaryArea.innerHTML = '';
+
+        let targetHist = hist;
         if (filterDate) {
-            // カレンダーからのフィルタリング
-            hist = hist.filter(h => h.date.startsWith(filterDate));
+            targetHist = hist.filter(h => h.date.startsWith(filterDate));
             titleEl.innerText = `${filterDate.trim()} の履歴`;
             footerEl.innerHTML = `<button class="btn" onclick="clearHistoryFilter()" style="background:#888;">カレンダーに戻る</button>`;
+            
+            if(targetHist.length > 0) {
+                let totalCorrect = 0;
+                targetHist.forEach(h => totalCorrect += parseInt(h.score.split('/')[0]));
+                const avgRate = Math.round((totalCorrect / (targetHist.length * 10)) * 100);
+                summaryArea.innerHTML = `<div class="summary-card"><small>本日の平均正答率</small><div style="font-size:2.5rem; font-weight:bold;">${avgRate}%</div></div>`;
+            }
         } else {
-            // 全履歴
             titleEl.innerText = `学習履歴`;
             footerEl.innerHTML = ``;
         }
 
-        if(hist.length === 0) {
-            container.innerHTML = '<div class="card">履歴はありません</div>'; return;
+        if(targetHist.length === 0) {
+            container.innerHTML = '<div class="card">データがありません</div>';
+            return;
         }
 
-        container.innerHTML = hist.map((r, idx) => {
-            // 元の配列のインデックスを探す（詳細表示のため）
+        container.innerHTML = targetHist.map((r) => {
             const originalIdx = getHistory().findIndex(h => h.date === r.date);
-            return `
-                <div class="list-item" onclick="viewHistoryDetail(${originalIdx})">
-                    <div><small>${r.date}</small><br><b>スコア: ${r.score}</b></div>
-                    <span>＞</span>
-                </div>
-            `;
+            return `<div class="list-item" onclick="viewHistoryDetail(${originalIdx})"><div><small>${r.date}</small><br><b>スコア: ${r.score}</b></div><span>＞</span></div>`;
         }).join('');
     }
 
-    function viewHistoryDetail(idx) {
-        const hist = getHistory();
-        const r = hist[idx];
-        if(!r) return;
-        document.getElementById('his-detail-header').innerHTML = `<h3>${r.date}</h3><b>スコア: ${r.score}</b>`;
-        document.getElementById('his-detail-body').innerHTML = r.details.map((d, i) => `
-            <div style="margin:10px 0; padding:10px; border:1px solid #eee; border-radius:8px; background:${d.ok?'#f0fff0':'#fff0f0'}">
-                Q${i+1}: ${d.q}<br>正解: ${d.a} / 回答: ${d.u}
-            </div>
-        `).join('');
-        changePage('history-detail');
-    }
-
-    function backFromHistoryDetail() {
-        changePage('history');
-    }
-
-    function clearHistoryFilter() {
-        isFilteredHistory = false;
-        changePage('calendar');
-    }
-
-    // --- カレンダー描画 ---
     function renderCalendar() {
-        const body = document.getElementById('calendar-body'); 
-        body.innerHTML = '';
-        const now = new Date(); 
-        const y = now.getFullYear(), m = now.getMonth();
+        const body = document.getElementById('calendar-body'); body.innerHTML = '';
+        const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
         document.getElementById('calendar-month').innerText = `${y}年 ${m+1}月`;
         
         const hist = getHistory();
         const firstDay = new Date(y, m, 1).getDay();
         const daysInMonth = new Date(y, m + 1, 0).getDate();
 
-        // 空白
         for (let i = 0; i < firstDay; i++) body.appendChild(document.createElement('div'));
 
         for (let d = 1; d <= daysInMonth; d++) {
-            const div = document.createElement('div'); 
-            div.className = 'calendar-day'; 
-            div.innerText = d;
+            const div = document.createElement('div'); div.className = 'calendar-day'; div.innerText = d;
+            const prefix = `${y}/${m+1}/${d} `;
+            const dayData = hist.filter(h => h.date.startsWith(prefix));
             
-            const datePrefix = `${y}/${m+1}/${d} `;
-            const hasData = hist.some(h => h.date.startsWith(datePrefix));
+            if (dayData.length > 0) {
+                let totalCorrect = 0;
+                dayData.forEach(h => totalCorrect += parseInt(h.score.split('/')[0]));
+                const avgRate = (totalCorrect / (dayData.length * 10)) * 100;
 
-            if (hasData) {
-                div.classList.add('has-study');
-                div.onclick = () => {
-                    renderHistoryList(datePrefix);
-                    changePage('history');
-                };
+                if (avgRate >= 90) div.classList.add('day-high');
+                else if (avgRate >= 50) div.classList.add('day-mid');
+                else if (avgRate >= 11) div.classList.add('day-low');
+                else div.classList.add('day-bad');
+
+                div.style.cursor = 'pointer';
+                div.onclick = () => { renderHistoryList(prefix); changePage('history'); };
             }
             body.appendChild(div);
         }
     }
 
+    function viewHistoryDetail(idx) {
+        const r = getHistory()[idx];
+        document.getElementById('his-detail-header').innerHTML = `<h3>${r.date}</h3><b>スコア: ${r.score}</b>`;
+        document.getElementById('his-detail-body').innerHTML = r.details.map((d, i) => `
+            <div style="margin:10px 0; padding:12px; border:1px solid #eee; border-radius:8px; background:${d.ok?'#f0fff0':'#fff0f0'}">
+                <b>Q${i+1}:</b> ${d.q}<br>
+                <span style="color:${d.ok?'#28a745':'#dc3545'}">正解: ${d.a} / 回答: ${d.u}</span>
+            </div>
+        `).join('');
+        changePage('history-detail');
+    }
+
+    // 単語帳管理
+    function initDictionary() {
+        const listEl = document.getElementById('dictionary-list');
+        if(listEl.innerHTML !== "") return;
+        listEl.innerHTML = masterData.map((item, idx) => `
+            <div class="list-item" id="word-item-${idx}" onclick="showWordDetail(${idx})">
+                <span style="font-weight:bold; color:var(--primary)">${idx + 1}. ${item.a}</span>
+                <span>＞</span>
+            </div>
+        `).join('');
+    }
+
+    function showWordDetail(idx) {
+        lastViewedWordId = idx;
+        const item = masterData[idx];
+        document.getElementById('detail-content').innerHTML = `
+            <div style="font-size:1.8rem; font-weight:bold; color:var(--primary);">${item.a}</div>
+            <div class="card" style="margin:15px 0; background:#f9f9f9; box-shadow:none; border:1px solid #eee;">
+                <div class="meaning-text">${item.m}</div>
+            </div>
+            <div style="color:#666;"><b>例文:</b><br><i style="display:block; margin-top:5px;">${item.q}</i></div>
+        `;
+        changePage('word-detail');
+    }
+
+    function backToDictionary() {
+        changePage('dictionary');
+        if (lastViewedWordId !== null) {
+            setTimeout(() => {
+                const el = document.getElementById(`word-item-${lastViewedWordId}`);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+    }
+
+    // ユーティリティ
+    function backFromHistoryDetail() { changePage('history'); }
+    function clearHistoryFilter() { isFilteredHistory = false; changePage('calendar'); }
     function toggleMenu(force) {
         const s = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay');
         const open = (force !== undefined) ? force : !s.classList.contains('open');
         s.classList.toggle('open', open); o.style.display = open ? 'block' : 'none';
     }
+    function updateHomeStats() {
+        const h = getHistory();
+        document.getElementById('home-stats').innerHTML = `<p>累計学習: <b>${h.length} 回</b></p><p>収録単語: <b>${masterData.length} 語</b></p>`;
+    }
 
-    // 初期起動
+    // 初期化
     updateHomeStats();
 </script>
 </body>
